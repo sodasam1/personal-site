@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restore the site</title>
+<style>
+:root{color-scheme:light dark}
+body{margin:0 auto;padding:0 20px 40px;max-width:60ch;font:1.1rem/1.6 Georgia,serif;background:#fff1e5;color:#000}
+@media(prefers-color-scheme:dark){body{background:#111;color:#eee}code,pre{background:#222}}
+pre,code{background:#e8dccd;padding:.1em .3em;white-space:pre-wrap;word-wrap:break-word}pre{padding:.6em}
+h1,h2{line-height:1.2} .why{font-size:.95rem;opacity:.85}
+</style></head><body>
+<h1>Restore the site</h1>
+<p>Use this after Tech Independence has been followed on a fresh server. It adds the one thing the kit adds:
+a password for everything under <code>/private/</code>. Written to be read offline, with no help needed.</p>
+
+<h2>0. Tech Independence first</h2>
+<p>Follow the Tech Independence page until your website works. Then upload your <code>htdocs</code> folder as that page says
+(include <code>htdocs/private/</code>).</p>
+
+<h2>1. Easy way: one file</h2>
+<p>Put <code>install.sh</code> (from the kit's <code>server</code> folder) in your home folder on the server, then:</p>
+<pre>doas sh ~/install.sh --check</pre>
+<p class="why"><code>doas</code> runs as root; <code>sh</code> runs the file; <code>--check</code> only shows what would change. Nothing is changed.</p>
+<pre>doas sh ~/install.sh</pre>
+<p class="why">Applies it. Asks for a user name and a long passphrase (20+ random characters). Safe to run twice.</p>
+<p>Undo: <code>doas sh ~/install.sh --remove</code>. Change the password: <code>doas sh ~/install.sh --passwd</code>.</p>
+
+<h2>2. By hand (if the script ever stops working)</h2>
+<p>This is exactly what the script does, line by line.</p>
+<pre>doas cp -p /etc/httpd.conf /etc/httpd.conf.pre-kit</pre>
+<p class="why">Keep a copy of the original so you can put it back.</p>
+<pre>doas vi /etc/httpd.conf</pre>
+<p class="why">Open the web server settings. Find the <code>server</code> block that says <code>listen on 127.0.0.1 port 8080</code>.
+Move to its last line, the <code>}</code> at the left edge. Press <code>O</code> (capital letter o) to open a line above it, then type the four lines below.
+Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
+<pre>  location "/private/*" {
+    authenticate "private" with "/htpasswd"
+  }</pre>
+<p class="why">Line 1: any address starting with <code>/private/</code>. Line 2: ask for a password, checked against the file
+<code>/htpasswd</code>, which is <code>/var/www/htpasswd</code> because the web server is locked inside <code>/var/www</code>. Line 3: end of the rule.</p>
+<pre>doas htpasswd /var/www/htpasswd YOURUSER</pre>
+<p class="why">Creates the password file and asks for the passphrase. It is stored only as a bcrypt hash.</p>
+<pre>doas chown root:www /var/www/htpasswd; doas chmod 640 /var/www/htpasswd</pre>
+<p class="why">The web server's account (<code>www</code>) must be able to read the file; nobody else may.</p>
+<pre>doas httpd -n</pre>
+<p class="why">Checks the settings for mistakes without applying them. It should say <code>configuration OK</code>. If not, put the
+<code>.pre-kit</code> copy back: <code>doas cp -p /etc/httpd.conf.pre-kit /etc/httpd.conf</code>.</p>
+<pre>doas rcctl reload httpd</pre>
+<p class="why">Makes the web server read the new settings. If that errors, use <code>doas rcctl restart httpd</code>.</p>
+
+<h2>3. Check it</h2>
+<p>From your own computer: <code>sh tools/gate-test.sh yourdomain YOURUSER</code>. Or open
+<code>https://yourdomain/private/index.html</code> in a browser: it must ask for the password.</p>
+
+<h2>4. Other apps</h2>
+<p>Riffbox and any other app has its own one-file installer and its own restore steps. Restore each app's data from inside the app.</p>
+</body></html>

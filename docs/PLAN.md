@@ -398,3 +398,15 @@ config produced by the same script, and the checks above) make that the only unt
   `X-Frame-Options: SAMEORIGIN`. Anything we serve (static private pages) inherits these.
 - `pf` allows inbound 22, 25, 80, 443, 587, 993 only; port 8100 is loopback-only, never exposed. No `pf` change is needed.
 - There is no `include` line in either file, so the installers use marked blocks and a validated replace, not drop-in files.
+
+---
+
+# Amendments, 15 Nov 2026
+
+## C1. The kit's server side is one file
+`server/install.sh` is self-contained (the httpd block is inside it), so `server/templates/` is gone and the upload is a single file placed in
+the home folder (`~/install.sh`). Why: it mirrors `ti.sh` (one plain file run with `sh`), removes a directory the script had to locate, and
+uses only OpenBSD base tools (`sh`, `awk`, `cmp`, `diff`, `htpasswd`, `httpd -n`, `rcctl`), which is the longest-lived footing available.
+## C2. Manual steps are the fallback and the record
+`RESTORE.html` (offline) gives the same changes as plain commands with a line-by-line reason, so the script is a convenience on top of
+knowledge you hold, not the only way in. Each future app's installer follows the same rule: one file, plus manual steps in its docs.

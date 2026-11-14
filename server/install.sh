@@ -5,18 +5,25 @@
 #   doas sh ~/server/install.sh --passwd   set or change the password for /private/
 #   doas sh ~/server/install.sh --remove   take the rule out again (the password file is kept)
 # It never touches Riffbox, relayd, pf, or any line of /etc/httpd.conf that Tech Independence wrote.
-# Test hook: SITEKIT_ROOT=/some/dir runs against a copy and skips every OpenBSD-only command.
+# One self-contained file: no other file is needed. Test hook: SITEKIT_ROOT=/some/dir runs against a copy and skips every OpenBSD-only command.
 set -eu
 
 ROOT="${SITEKIT_ROOT:-}"
 HTTPD_CONF="$ROOT/etc/httpd.conf"
 PWFILE="$ROOT/var/www/htpasswd"
-HERE=$(cd "$(dirname "$0")" && pwd)
-BLOCK="$HERE/templates/httpd-private.block"
 BEGIN="# BEGIN site-kit"
 END="# END site-kit"
 TMP=$(mktemp)
-trap 'rm -f "$TMP"' EXIT
+BLOCK=$(mktemp)
+trap 'rm -f "$TMP" "$BLOCK"' EXIT
+
+# The exact text added to httpd.conf (the same lines are written out by hand in RESTORE.html).
+cat > "$BLOCK" <<'BLOCKEOF'
+  # Everything under /private/ needs the site password. The file is relative to the web chroot (/var/www).
+  location "/private/*" {
+    authenticate "private" with "/htpasswd"
+  }
+BLOCKEOF
 
 MODE=apply
 case "${1:-}" in

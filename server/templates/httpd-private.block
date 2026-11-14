@@ -1,4 +1,0 @@
-  # Everything under /private/ needs the site password. The file is relative to the web chroot (/var/www).
-  location "/private/*" {
-    authenticate "private" with "/htpasswd"
-  }
