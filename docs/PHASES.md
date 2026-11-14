@@ -12,3 +12,11 @@ so every deploy gate is run by the owner. Say what is unverified; never assume i
 - [ ] **Stage 4: the gate** (branch `gate`). Gate: `tools/gate-test.sh` from outside, iPhone Shortcut test, password change.
 
 Full reasoning, definitions of "the kit", "server rebuild" and "Riffbox data restore", and the unverified list: `PLAN.md`.
+
+## Status log
+- **14 Nov 2026, owner-verified on the live server:** `install.sh --check` showed the expected diff; apply succeeded (OpenBSD's own
+  `httpd -n` accepted `authenticate "private" with "/htpasswd"`); from outside: public page 200, `/private/index.html` without a
+  password 401, plain-http 301 to https; the browser prompted and accepted the passphrase. This settles, on the real server:
+  the `authenticate` syntax, the 8080-block placement, `htpasswd` creation, and the `reload`.
+- **Still unverified:** wrong password refused (browser, one try); iPhone Safari and Chrome prompt and sign-in; per-request cost of the
+  password check; behaviour after `sysupgrade`. Stage 2 (Riffbox's own installer), Stage 3 and Stage 4 not started.
