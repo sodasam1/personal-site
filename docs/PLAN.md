@@ -371,3 +371,30 @@ Replacement, in three levels, none of which touch DNS:
 3. **Level 3 (real, once):** on the live server, with a Vultr snapshot taken first (price unverified) and the installers' `.pre-kit`
    config copies as the undo. Nothing is destroyed. The full "wipe and rebuild" is then proven only at a genuine rebuild, which we
    say plainly instead of faking.
+
+---
+
+# Amendments, 14 Nov 2026 (second set)
+
+## B1. Rehearsal simplified (supersedes A4)
+Rebuilding the whole server as a rehearsal is more than this stage needs, so it is **not required**. The safeguards that replace it:
+1. **Checked against the real TI files, offline (me):** I run each installer's config edits against the pristine `reference/ti.tar`
+   files (`httpd.conf`, `relayd.conf`) and show you the exact resulting text and a diff to review before anything touches a server.
+   Also a fake-root run on Linux for first run, second run (no change) and failed-check rollback.
+2. **Dry run on the server:** every installer has `--check`, which prints what it would change and changes nothing.
+3. **Automatic undo:** `.pre-kit` copies of each edited config, `httpd -n` and `relayd -n` before applying, and rollback if either fails.
+4. **Optional:** a Vultr snapshot before the first real run (price unverified). A local OpenBSD VM stays available if you ever want it.
+Stated plainly: a genuine wipe-and-rebuild stays unproven until you need one. The ingredients (the original TI files, a rebuilt-from-scratch
+config produced by the same script, and the checks above) make that the only untested step, and it fails safely.
+
+## B2. What the pristine TI configs show (from `reference/ti.tar`)
+- `httpd` has **two** server blocks: port 80 on all addresses only serves the certificate challenge and redirects to https; the real
+  site is `listen on 127.0.0.1 port 8080` with `default type text/html`. relayd terminates TLS on 443 and forwards to it. So a
+  `location "/private/*"` rule with `authenticate` goes in the **8080 block** only, and passwords never travel over plain port 80.
+- relayd routes by `Host` header with `pass request quick ... forward to <httpd>` and `<radicale>`. Riffbox's rules are `quick` path rules
+  that must sit before those Host rules (first quick match wins). The relay's `forward to` lines list each table once.
+- relayd **sets** `X-Forwarded-For` (overwrites any client-supplied value), which is what `throttle.py` relies on. Confirmed safe.
+- relayd adds response headers for every site, including `Content-Security-Policy: default-src https: 'unsafe-inline'` and
+  `X-Frame-Options: SAMEORIGIN`. Anything we serve (static private pages) inherits these.
+- `pf` allows inbound 22, 25, 80, 443, 587, 993 only; port 8100 is loopback-only, never exposed. No `pf` change is needed.
+- There is no `include` line in either file, so the installers use marked blocks and a validated replace, not drop-in files.
