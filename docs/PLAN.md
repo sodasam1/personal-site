@@ -311,3 +311,63 @@ VPN or client certificates (not a password; awkward on the phone); standard-libr
 - [Flask-Security-Too features](https://flask-security-too.readthedocs.io/en/latest/features.html) (built on Flask-Login, passlib hashing)
 - [Flask auth options compared (WorkOS blog)](https://workos.com/blog/top-authentication-solutions-flask-2026)
 - [Shortcuts with a Bearer header: Coda webhooks thread](https://connect.superhuman.com/t/siri-ios-and-coda-webhooks/31647) and [Home Assistant thread](https://community.home-assistant.io/t/ios-shortcuts-with-ha-no-ssl-required/89529) (the search did not cover how Shortcuts handles cookies)
+
+---
+
+# Amendments, 14 Nov 2026 (after the first recon)
+
+## A1. Riffbox is no longer packaged into the kit
+The kit holds only the **server level**: `htdocs/`, `server/install.sh` (httpd `/private/*` rule, the `htpasswd` file) and its
+templates, `tools/gate-test.sh`, `RESTORE.html`, `reference/`, `docs/`. **Riffbox is an app with its own installer** and is
+uploaded separately with FreeFileSync, then installed by its own `install.sh` (in the riffbox repo, branch `install`). It does the
+Riffbox-only work: `pkg_add py3-flask py3-waitress ffmpeg` (already satisfied on this server), the `_riffbox` user and folders,
+rc.d script, its marked block in `relayd.conf`, `/etc/riffbox.conf`, the backup cron line.
+Consequences, stated plainly:
+- The kit's `server/apps/riffbox/` and `htdocs/ideas/` no longer exist; Riffbox's page files stay with Riffbox (served by the app,
+  as today, which also avoids the possible loss of `webcache.py` compression).
+- **Rebuild order:** TI, upload the kit and run the kit's `install.sh`, upload Riffbox and run Riffbox's `install.sh`, then
+  Riffbox data restore inside the app. One installer per layer; each is safe to run twice.
+- **"One passphrase"** now means you type the same passphrase into two installers (the kit's writes the httpd hash, Riffbox's
+  writes its own hash). They cannot share one hash: httpd uses bcrypt, Riffbox's Werkzeug hash is scrypt.
+- Future apps follow the same convention: an app ships its own `install.sh`; the kit never learns about apps.
+
+## A2. What the recon showed (server is not a clean TI install; that is acceptable for this purpose)
+Acceptable because I use the server only to read configuration shapes and to see what is installed; it proves nothing about a
+clean rebuild, which is what the drill (A4) is for. What the output told me:
+- Python 3.13.16 is required by `radicale-2.1.12p9` and by `py3-passlib`, `py3-bcrypt`, `py3-argon2-cffi`, `py3-scrypt` (Radicale's
+  dependencies). So Python comes from TI itself, as planned. `py3-flask`, `py3-waitress` and ffmpeg are the Riffbox additions.
+- **Version drift confirmed:** the server runs Werkzeug 3.1.5 from OpenBSD packages while riffbox pins 3.1.9 for development. The
+  packages, not the pins, are what runs in production; the 255 tests should be run against the package versions in Stage 1.
+- **Radicale is installed but not enabled** (`rcctl ls on` lacks `radicale`), so the TI contacts/calendar step was not completed.
+  The kit must not assume a Radicale service exists.
+- `/var/www/htdocs` contains FreeFileSync bookkeeping (`sync.ffs_db`) and a backup HTML; the kit's `htdocs/` will not copy those.
+- The `man httpd.conf` command printed nothing (manual pages may not be installed). Not needed now: I will read the syntax from your
+  live config files instead.
+
+## A3. Still needed from the owner
+`ti.tar` arrived as a 2-byte file (one blank line), so it did not upload correctly, and I cannot fetch it from here. The live files
+are better anyway because they show what actually runs, including the Riffbox edits. Run on the server (read-only) and paste:
+```sh
+cat /etc/httpd.conf             # print the web server config
+cat /etc/relayd.conf            # print the TLS front door config (this holds the Riffbox rules)
+cat /etc/pf.conf                # print the firewall rules
+doas crontab -l                 # print root's scheduled jobs (certificate renewal, any backups)
+cat /etc/rc.d/riffbox           # print the Riffbox service script
+ls -la /etc/riffbox.conf        # show its owner and mode only; do NOT paste its contents (it holds secrets)
+```
+(`cat` prints a file; `doas` runs as root; `crontab -l` lists scheduled jobs; `ls -la` lists a file's owner and permissions.)
+If you can, also upload `ti.tar` again via the GitHub "Add file" page; it should be about 100 KB or more, not 2 bytes.
+
+## A4. Rehearsal without a throwaway domain and without touching your DNS
+`ti.sh` deletes and re-creates the domain's Vultr DNS records, so it must never be run for your real domain against a second server.
+Replacement, in three levels, none of which touch DNS:
+1. **Level 1 (me, Linux, free):** a fake-root run of both installers with stubbed `pkg_add`, `rcctl`, `relayd`, `httpd`, `doas`,
+   covering first run, second run (no changes), failed config check (rollback). Catches script logic, not OpenBSD behaviour.
+2. **Level 2 (owner, free): a local OpenBSD 7.9 virtual machine** on your Windows PC (VirtualBox, QEMU or Hyper-V; I have not
+   verified the exact steps for your setup). Install OpenBSD, copy TI's config files in with `example.com` replaced by a fake name, use a
+   self-signed certificate instead of acme-client, then run: kit installer, Riffbox upload and installer, data restore, browser check
+   through a forwarded port. This exercises everything we write, on the real OS, with nothing public. It skips only `ti.sh`'s own Vultr,
+   DNS and certificate steps, which we do not change.
+3. **Level 3 (real, once):** on the live server, with a Vultr snapshot taken first (price unverified) and the installers' `.pre-kit`
+   config copies as the undo. Nothing is destroyed. The full "wipe and rebuild" is then proven only at a genuine rebuild, which we
+   say plainly instead of faking.
