@@ -55,7 +55,7 @@ connection and change only the path at the end.
 | Pair | Left (computer) | Right (server) | Synchronization | Filter (Exclude) |
 |---|---|---|---|---|
 | A | `server-mirror\var\www\htdocs` | `/var/www/htdocs` | Update | `*sync.ffs_db` and `*.bak` |
-| B+C | `server-mirror\home\me` | `/home/me` | Update, with an **Include** filter | include only: `install.sh` and `riffbox\*`; exclude: `riffbox\tests\*`, `riffbox\docs\*`, `riffbox\archive\*`, `*.git*` |
+| B+C | `server-mirror\home\me` | `/home/me` | Update, with an **Include** filter | include only: `install.sh` and `riffbox\*`; exclude: `riffbox\tests\*`, `riffbox\docs\*`, `riffbox\archive\*`, `*.git*`, `*__pycache__*` |
 
 - **Update** copies new and changed files from left to right and **never deletes** anything on the server. Why: your server's `htdocs` has files that are
   not on your computer (the `sync.ffs_db` bookkeeping, `Tour Watch.html`); Mirror would delete them. TI's page uses Mirror once your computer holds the
@@ -92,6 +92,7 @@ I recommend the three small jobs instead: a job that can pull and push in one cl
 so make a backup (Back up now) and run it regularly.
 
 ## 5. Safety rules
+- If FreeFileSync reports it cannot delete or replace files in `/home/me/riffbox`, a file there is owned by root. Fix once on the server: `doas chown -R me:me ~/riffbox` (only that staging folder). Cause and permanent fix: riffbox branch `clean-upload-folder`.
 - Read the **Compare** preview every time. A surprising "delete" or a file you do not recognise: stop.
 - `Update` everywhere; `Mirror` only for pair A and only on purpose. Never on `/home/me`, `/var`, `/` or `/usr`.
 - Never put anything of yours in `server-mirror\var\riffbox-backup`.
