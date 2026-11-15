@@ -87,6 +87,7 @@ If you prefer one file: put pairs A, B+C, D and E in one job. Use the checkbox o
 I recommend the three small jobs instead: a job that can pull and push in one click has more ways to go wrong.
 
 ## 4. A rebuild after a wipe
+The full, explained version (every command, the prompts, the checks) is `RESTORE.html`. In short:
 1. Tech Independence. 2. Run **Deploy** (A, B, C). 3. On the server, the installers: `doas sh ~/install.sh` (the kit) and
 `doas sh ~/riffbox/deploy/install.sh` (Riffbox). 4. Run **Restore**. 5. Press Restore in Riffbox. The backup comes from your last **Pull-backup**,
 so make a backup (Back up now) and run it regularly.
