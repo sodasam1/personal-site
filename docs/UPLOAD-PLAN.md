@@ -13,7 +13,7 @@ still one command (section 6 shows how to make FreeFileSync run it for you).
 | A | `/var/www/htdocs` | your public pages, `pub/`, and `private/` pages | up | **Update** | every site edit |
 | B | `/home/me/install.sh` | the site kit's one-file installer | up | Update | rarely (when it changes) |
 | C | `/home/me/riffbox/` | the Riffbox folder (`app/`, `static/`, `deploy/`); its installer copies it into place | up | **Update** | every Riffbox update |
-| D | `/var/riffbox-backup` | the nightly Riffbox backup | **down** (server to computer) | Update, right to left | weekly, or when you like |
+| D | `/var/riffbox-backup` | the Riffbox backup (made by the **Back up now** button or `backup.py`; a nightly schedule is a planned feature, not installed) | **down** (server to computer) | Update, right to left | after each backup you make |
 | E | `/var/riffbox-restore` | the drop folder for Riffbox data restore | up | Update | only after a wipe |
 
 `me` is your server login. `/var/riffbox-backup` and `/var/riffbox-restore` are created by Riffbox's installer (branch `one-file-installer`).
@@ -89,7 +89,7 @@ I recommend the three small jobs instead: a job that can pull and push in one cl
 ## 4. A rebuild after a wipe
 1. Tech Independence. 2. Run **Deploy** (A, B, C). 3. On the server, the installers: `doas sh ~/install.sh` (the kit) and
 `doas sh ~/riffbox/deploy/install.sh` (Riffbox). 4. Run **Restore**. 5. Press Restore in Riffbox. The backup comes from your last **Pull-backup**,
-so keep running that.
+so make a backup (Back up now) and run it regularly.
 
 ## 5. Safety rules
 - Read the **Compare** preview every time. A surprising "delete" or a file you do not recognise: stop.
