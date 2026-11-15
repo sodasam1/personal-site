@@ -20,3 +20,11 @@ Full reasoning, definitions of "the kit", "server rebuild" and "Riffbox data res
   the `authenticate` syntax, the 8080-block placement, `htpasswd` creation, and the `reload`.
 - **Still unverified:** wrong password refused (browser, one try); iPhone Safari and Chrome prompt and sign-in; per-request cost of the
   password check; behaviour after `sysupgrade`. Stage 2 (Riffbox's own installer), Stage 3 and Stage 4 not started.
+
+## Full rebuild runbook (branch `rebuild-runbook`)
+`RESTORE.html` is now the complete, offline, ordered rebuild page: what must be on your computer, Tech Independence, the site's password rule, Riffbox (installer
+prompts explained, the upload token), restoring your recordings, five final checks, and what to do when things go wrong. `tools/gate-test.ps1` is the Windows
+version of the password check.
+- [x] Local gate: the page is well-formed HTML; the commands match the riffbox installer's real behaviour as tested there.
+- [ ] Owner: read `RESTORE.html` once, start to finish, and say what is unclear or missing. Run `tools\gate-test.ps1` (not verified: I cannot run PowerShell here).
+

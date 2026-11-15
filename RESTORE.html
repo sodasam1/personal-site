@@ -1,22 +1,32 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Restore the site</title>
+<title>Rebuild the site</title>
 <style>
 :root{color-scheme:light dark}
 body{margin:0 auto;padding:0 20px 40px;max-width:60ch;font:1.1rem/1.6 Georgia,serif;background:#fff1e5;color:#000}
 @media(prefers-color-scheme:dark){body{background:#111;color:#eee}code,pre{background:#222}}
 pre,code{background:#e8dccd;padding:.1em .3em;white-space:pre-wrap;word-wrap:break-word}pre{padding:.6em}
-h1,h2{line-height:1.2} .why{font-size:.95rem;opacity:.85}
+h1,h2,h3{line-height:1.2} .why{font-size:.95rem;opacity:.85}
 </style></head><body>
-<h1>Restore the site</h1>
-<p>Use this after Tech Independence has been followed on a fresh server. It adds the one thing the kit adds:
-a password for everything under <code>/private/</code>. Written to be read offline, with no help needed.</p>
+<h1>Rebuild the site after a wipe</h1>
+<p>Everything in order, for a brand-new server. Written to be read offline with no help. Each command is explained: <code>doas</code> runs a command as root
+(like sudo), and <code>~</code> is your home folder on the server. You can stop after any part; each part works on its own.</p>
 
-<h2>0. Tech Independence first</h2>
-<p>Follow the Tech Independence page until your website works. Then upload your <code>htdocs</code> folder as that page says
-(include <code>htdocs/private/</code>).</p>
+<h2>Before you start: what must be on YOUR computer</h2>
+<ul>
+<li>The <b>site kit</b> folder (the <code>personal-site</code> repo): <code>htdocs\</code> and <code>server\install.sh</code>.</li>
+<li>The <b>riffbox</b> folder (GitHub: Code, Download ZIP; unpack and rename to <code>riffbox</code>; it must hold <code>app</code>, <code>static</code> and <code>deploy</code>).</li>
+<li>Your <b>latest pulled backup</b>: the copy of the server's <code>/var/riffbox-backup</code> (it holds <code>db</code> and <code>audio</code>). It is only as new as your last pull.</li>
+<li>In your <b>password manager</b>: the site passphrase, the Riffbox passphrase, and the phone <b>upload token</b> (so the iPhone Shortcut keeps working).</li>
+<li>Your <b>SSH key</b> (<code>id_ed25519</code>), as the Tech Independence page explains.</li>
+</ul>
 
-<h2>1. Easy way: one file</h2>
+<h2>A. Tech Independence</h2>
+<p>Follow the Tech Independence page until your website works. Then upload your <code>htdocs</code> folder as that page says (include <code>htdocs/private/</code>).
+Do <b>not</b> run <code>ti.sh</code> for your real domain on a second server to "practise": it deletes the domain's DNS records and re-creates them.</p>
+
+<h2>B. The site's password rule for /private/</h2>
+<h3>Easy way: one file</h3>
 <p>Put <code>install.sh</code> (from the kit's <code>server</code> folder) in your home folder on the server, then:</p>
 <pre>doas sh ~/install.sh --check</pre>
 <p class="why"><code>doas</code> runs as root; <code>sh</code> runs the file; <code>--check</code> only shows what would change. Nothing is changed.</p>
@@ -24,13 +34,12 @@ a password for everything under <code>/private/</code>. Written to be read offli
 <p class="why">Applies it. Asks for a user name and a long passphrase (20+ random characters). Safe to run twice.</p>
 <p>Undo: <code>doas sh ~/install.sh --remove</code>. Change the password: <code>doas sh ~/install.sh --passwd</code>.</p>
 
-<h2>2. By hand (if the script ever stops working)</h2>
-<p>This is exactly what the script does, line by line.</p>
+<h3>By hand (if the script ever stops working)</h3>
 <pre>doas cp -p /etc/httpd.conf /etc/httpd.conf.pre-kit</pre>
 <p class="why">Keep a copy of the original so you can put it back.</p>
 <pre>doas vi /etc/httpd.conf</pre>
 <p class="why">Open the web server settings. Find the <code>server</code> block that says <code>listen on 127.0.0.1 port 8080</code>.
-Move to its last line, the <code>}</code> at the left edge. Press <code>O</code> (capital letter o) to open a line above it, then type the four lines below.
+Move to its last line, the <code>}</code> at the left edge. Press <code>O</code> (capital letter o) to open a line above it, then type the three lines below.
 Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
 <pre>  location "/private/*" {
     authenticate "private" with "/htpasswd"
@@ -47,10 +56,43 @@ Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
 <pre>doas rcctl reload httpd</pre>
 <p class="why">Makes the web server read the new settings. If that errors, use <code>doas rcctl restart httpd</code>.</p>
 
-<h2>3. Check it</h2>
-<p>From your own computer: <code>sh tools/gate-test.sh yourdomain YOURUSER</code>. Or open
-<code>https://yourdomain/private/index.html</code> in a browser: it must ask for the password.</p>
+<h2>C. Riffbox</h2>
+<p>1. Upload the <code>riffbox</code> folder to <code>/home/YOURUSER/riffbox</code> on the server. (Only a staging copy: the installer copies it into place.)</p>
+<pre>ls ~/riffbox/deploy/install.sh</pre>
+<p class="why">Lists the installer. If it says "No such file", the upload did not arrive or went to the wrong folder.</p>
+<p>2. Look first. This changes nothing and says what it would create or change:</p>
+<pre>doas sh ~/riffbox/deploy/install.sh --check</pre>
+<p>3. Do it:</p>
+<pre>doas sh ~/riffbox/deploy/install.sh</pre>
+<p class="why">On a new server it installs Riffbox's packages (Flask, waitress, ffmpeg), makes the service user and folders, writes the start-up script, and asks:
+(a) a long <b>passphrase</b> for the Riffbox login (stored only as a salted hash); (b) your <b>existing upload token</b>: paste it from your password manager so the
+phone Shortcut keeps working, or press Enter for a new one (then put the new one into the Shortcut once); (c) <b>y</b> to add Riffbox's routes to
+<code>/etc/relayd.conf</code> (a copy is kept as <code>relayd.conf.pre-riffbox</code>). It ends with <code>PASS: Riffbox answers on 127.0.0.1:8100</code>.</p>
+<p>Everyday updates later: upload the folder again and run <code>doas sh ~/riffbox/deploy/install.sh --app-files-only</code> (copies only the app and restarts it).
+If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 
-<h2>4. Other apps</h2>
-<p>Riffbox and any other app has its own one-file installer and its own restore steps. Restore each app's data from inside the app.</p>
+<h2>D. Your recordings (Riffbox data restore)</h2>
+<p>1. Upload your pulled backup folder (the one holding <code>db</code> and <code>audio</code>) into <code>/var/riffbox-restore</code> on the server.</p>
+<p>2. Open Riffbox in the browser, then <b>Backup and export</b>, then <b>Restoring</b>. It should say it found a backup and how many recordings. Press
+<b>Restore from this folder</b>. It only works into an <b>empty</b> library, so it cannot overwrite anything, and it never changes the folder you uploaded.</p>
+<p>3. If anything is missing or damaged it is listed, not hidden. Waveforms and play copies are rebuilt in the background afterwards.</p>
+<p class="why">Practise this before you ever need it, on your own computer: <code>python deploy/practice_restore.py PATH-TO-BACKUP</code> (in the riffbox folder).</p>
+
+<h2>E. Check everything (five things)</h2>
+<ol>
+<li><code>https://yourdomain/</code> loads, and <code>https://yourdomain/private/index.html</code> asks for the password (<code>tools\gate-test.ps1</code> on Windows, <code>tools/gate-test.sh</code> elsewhere).</li>
+<li>Log in to Riffbox at <code>/ideas/</code> and play a recording.</li>
+<li>Upload a memo from the iPhone Shortcut (<code>deploy/SHORTCUT.md</code>, section 6, in the riffbox folder).</li>
+<li>Press <b>Back up now</b> on the Backup and export page, then confirm a new file appears in <code>/var/riffbox-backup/db</code>.</li>
+<li>Pull <code>/var/riffbox-backup</code> to your computer again, so the new server has an off-server copy.</li>
+</ol>
+
+<h2>F. If something goes wrong</h2>
+<ul>
+<li><b>Riffbox does not answer:</b> <code>doas rcctl check riffbox</code> then <code>tail -30 /var/log/daemon</code> (the last lines of the server's log).</li>
+<li><b>relayd rejects the file:</b> put the copy back with <code>doas cp -p /etc/relayd.conf.pre-riffbox /etc/relayd.conf</code> and <code>doas rcctl reload relayd</code>.</li>
+<li><b>FreeFileSync cannot delete or replace files in <code>~/riffbox</code>:</b> something there is owned by root. Fix once: <code>doas chown -R YOURUSER:YOURUSER ~/riffbox</code> (only that staging folder).</li>
+<li><b>Locked out after wrong passphrases:</b> <code>doas rcctl restart riffbox</code> clears the counter.</li>
+<li><b>Anything else:</b> every installer has <code>--check</code>; run it and read what it says before changing anything.</li>
+</ul>
 </body></html>
