@@ -1,0 +1,14 @@
+# The site login service (one per server). See docs/MULTI-APP.md, approach C.
+NAME=login
+UNIXNAME=sitelogin
+TITLE="Site login"
+BASE_PATH=/login
+ROUTES="/login /private"
+PORT=8099
+SVC_HOME=/var/empty
+SITE_AUTH=1
+AUTH_COOKIE_PATH=/private
+DIRS="/etc/site-auth,root,wheel,755 /etc/site-auth/keys,root,wheel,755"
+CONF_LINES="SITELOGIN_AUTH_DIR=/etc/site-auth
+SITELOGIN_PRIVATE_DIR=/var/www/htdocs/private
+SITELOGIN_STATIC_DIR=/usr/local/login/static/minimal"

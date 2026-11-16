@@ -50,6 +50,22 @@ cp "$R/etc/relayd.conf" "$R/both"; $A --yes >/dev/null; $B --yes >/dev/null
 cmp -s "$R/both" "$R/etc/relayd.conf" && ok "two apps: re-running either installer changes nothing (neither strips the other)" || bad "two apps: re-run changed relayd"
 [ -f "$R/etc/relayd.conf.pre-betaapp" ] && ok "each app keeps its own .pre- backup" || bad "beta backup"
 
+
+# --- the site login step ---------------------------------------------------------------------------------
+stage authapp
+S="$W/auth"; mkdir -p "$S/etc"; cp "$FIX/relayd.pristine.conf" "$S/etc/relayd.conf"
+AU="sh $W/up-authapp/deploy/install.sh"
+APPKIT_TEST_ROOT="$S" $AU --yes > "$S/o1" 2>&1 || { bad "authapp: run failed"; cat "$S/o1"; }
+grep -q 'site login is not installed yet' "$S/o1" && [ ! -e "$S/etc/site-auth/keys/authapp.key" ] && ok "site login: without the login service installed it holds back, creates no key" || bad "site login: missing-master handling"
+APPKIT_TEST_ROOT="$S" python3 "$KIT/../siteauth/siteauth/keys.py" init --dir "$S/etc/site-auth" --no-chown >/dev/null
+APPKIT_TEST_ROOT="$S" $AU --check > "$S/o2" 2>&1; [ ! -e "$S/etc/site-auth/keys/authapp.key" ] && ok "site login: --check writes no key" || bad "site login: --check wrote a key"
+APPKIT_TEST_ROOT="$S" $AU --yes > "$S/o3" 2>&1 || { bad "authapp: 2nd run failed"; cat "$S/o3"; }
+[ -f "$S/etc/site-auth/keys/authapp.key" ] && grep -qx 'authapp /authapp' "$S/etc/site-auth/apps.conf" && ok "site login: app registered and its key written" || bad "site login: key/registration"
+want=$(python3 -c "import importlib.util as u;sp=u.spec_from_file_location('k','$KIT/../siteauth/siteauth/keys.py');m=u.module_from_spec(sp);sp.loader.exec_module(m);print(m.derive(open('$S/etc/site-auth/master').read().strip(),'authapp',1))")
+[ "$(cat "$S/etc/site-auth/keys/authapp.key")" = "$want" ] && ok "site login: the key is HMAC(master, app|generation)" || bad "site login: key value"
+cp "$S/etc/site-auth/keys/authapp.key" "$S/k1"; APPKIT_TEST_ROOT="$S" $AU --yes > "$S/o4" 2>&1
+cmp -s "$S/k1" "$S/etc/site-auth/keys/authapp.key" && grep -q 'registered, key current' "$S/o4" && ok "site login: a second run changes nothing" || bad "site login: not idempotent"
+
 # --- refusals --------------------------------------------------------------------------------------
 sed 's/^PORT=.*/PORT=8101/' "$HERE/apps/beta/deploy/app.manifest" > "$W/up-beta/deploy/app.manifest"
 $B --yes > "$R/clash.out" 2>&1 && bad "port clash was accepted" || { grep -q 'port 8101' "$R/clash.out" && ok "a port used by another app is refused" || bad "port clash message"; }

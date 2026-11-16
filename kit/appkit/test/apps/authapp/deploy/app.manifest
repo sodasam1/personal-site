@@ -1,0 +1,5 @@
+NAME=authapp
+UNIXNAME=authapp
+BASE_PATH=/authapp
+PORT=8103
+SITE_AUTH=1

@@ -56,6 +56,17 @@ Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
 <pre>doas rcctl reload httpd</pre>
 <p class="why">Makes the web server read the new settings. If that errors, use <code>doas rcctl restart httpd</code>.</p>
 
+<h2>B2. The site login (one passphrase for every private app and page)</h2>
+<p>1. Upload the <code>login</code> folder to <code>/home/YOURUSER/login</code> on the server.</p>
+<pre>doas sh ~/login/deploy/install.sh --check</pre>
+<p class="why">Look first: it prints what it would create and change, and changes nothing.</p>
+<pre>doas sh ~/login/deploy/install.sh</pre>
+<p class="why">Installs the login service, creates <code>/etc/site-auth</code> (a random master key and your passphrase's salted hash; it asks for the passphrase once, 15
+characters or more), and asks <b>y</b> before adding <code>/login</code> and <code>/private</code> routes to <code>/etc/relayd.conf</code> (a copy is kept as <code>relayd.conf.pre-sitelogin</code>).
+It ends with <code>PASS: Site login answers on 127.0.0.1:8099</code>. Then, on your own computer: <code>sh tools/gate-test-login.sh yourdomain</code> (Windows: <code>tools\gate-test-login.ps1 -Domain yourdomain</code>).</p>
+<p>Apps installed after this (riffbox, music-share, Version Control) register themselves with the login when their own installer runs. If an app's installer says
+"the site login is not installed yet", do this section first and re-run it.</p>
+
 <h2>C. Riffbox</h2>
 <p>1. Upload the <code>riffbox</code> folder to <code>/home/YOURUSER/riffbox</code> on the server. (Only a staging copy: the installer copies it into place.)</p>
 <pre>ls ~/riffbox/deploy/install.sh</pre>

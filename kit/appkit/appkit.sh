@@ -68,6 +68,10 @@ die()  { say "STOP: $*"; exit 1; }
 : "${ROUTES:=$BASE_PATH}"
 : "${HEALTH_PATH:=$BASE_PATH/health}"
 : "${REQUIRE_MOUNT:=}"
+: "${SITE_AUTH:=0}"                         # 1 = this app uses the site's one login (kit/siteauth): register it and give it its own key
+: "${AUTH_COOKIE_PATH:=$BASE_PATH}"
+: "${AUTH_DIR:=/etc/site-auth}"
+: "${SITE_AUTH_TOOL:=app/siteauth/keys.py}"
 SVC_USER="_$UNIXNAME"
 
 # validate every name before it is used in a command, a file name or a config line
@@ -252,6 +256,29 @@ else
         } > "$CONF" )
     fi
     run chown "root:$SVC_USER" "$CONF_FILE"; chmod 640 "$CONF"; CHANGED=1
+  fi
+fi
+
+# ---- 5b. the site's one login: register this app and write its own key -------------------------------------
+if [ "$SITE_AUTH" = 1 ]; then
+  step "5b. Site login: this app's own key in $AUTH_DIR/keys/$UNIXNAME.key"
+  # an app may prepare the login's own files first (only the login service does)
+  if command -v app_before_site_auth >/dev/null 2>&1; then app_before_site_auth; fi
+  TOOL="$SRC/$SITE_AUTH_TOOL"
+  if [ ! -f "$TOOL" ]; then held "$TOOL not found: this app was not given siteauth (run kit/sync-into.sh)"
+  elif [ "$CHECK" = 1 ]; then
+    if [ -f "$ROOT$AUTH_DIR/master" ]; then chgd "would register $UNIXNAME ($AUTH_COOKIE_PATH) and write its key if missing or stale"
+    else held "the site login is not installed yet (no $AUTH_DIR/master): install the login app first"; fi
+  else
+    NOCHOWN=""; [ -n "$ROOT" ] && NOCHOWN="--no-chown"
+    set +e
+    # shellcheck disable=SC2086
+    out=$("$PY" "$TOOL" ensure-app --dir "$ROOT$AUTH_DIR" --app "$UNIXNAME" --path "$AUTH_COOKIE_PATH" --user "$SVC_USER" $NOCHOWN 2>&1); rc=$?
+    set -e
+    if [ "$rc" = 3 ]; then held "the site login is not installed yet (no $AUTH_DIR/master): install the login app first, then re-run this installer"
+    elif [ "$rc" != 0 ]; then die "could not set up the site login key: $out"
+    elif [ "$out" = "already registered, key current" ]; then left "registered, key current"
+    else chgd "site login: $out"; CHANGED=1; fi
   fi
 fi
 
