@@ -215,7 +215,8 @@ rc_reload=NO
 rc_cmd \$1
 RCEOF
 # another app must not already listen on this port
-other=$(grep -l "listen=127.0.0.1:$PORT" "$ROOT"/etc/rc.d/* 2>/dev/null | grep -v "/$UNIXNAME\$" || true)
+# (this app's own script and the .pre-* backups this installer keeps are not "another app")
+other=$(grep -l "listen=127.0.0.1:$PORT" "$ROOT"/etc/rc.d/* 2>/dev/null | grep -v "/$UNIXNAME\$" | grep -v '\.pre-' || true)
 [ -z "$other" ] || die "port $PORT is already used by: $other (give this app another PORT in app.manifest)"
 # "the same script" means the same settings: comments and blank lines (apart from the first line) are ignored
 essence() { awk 'NR==1{print; next} /^[ \t]*#/{next} NF' "$1"; }
