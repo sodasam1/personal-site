@@ -49,3 +49,7 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 ## Verification
 `VENV_PY=... sh tools/test-kit.sh` (offline). On the server only `--check` runs and the gate scripts. Unverified by me (no OpenBSD here):
 `useradd`/`rcctl`/`relayd -n`, group file access, sibling-path cookies in every browser, `python3` hashing speed on the 1 vCPU box.
+
+## Where each app's data lives
+riffbox `/var/riffbox`, music-share `/var/music-share`, Version Control `/var/version-control` (the big volume; its installer refuses to run unless it is mounted and holds `.volume-ok`).
+Each app's backups are pulled to your computer with FreeFileSync; none of them is a backup of itself.
