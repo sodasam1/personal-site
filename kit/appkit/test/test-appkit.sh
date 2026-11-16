@@ -66,6 +66,12 @@ want=$(python3 -c "import importlib.util as u;sp=u.spec_from_file_location('k','
 cp "$S/etc/site-auth/keys/authapp.key" "$S/k1"; APPKIT_TEST_ROOT="$S" $AU --yes > "$S/o4" 2>&1
 cmp -s "$S/k1" "$S/etc/site-auth/keys/authapp.key" && grep -q 'registered, key current' "$S/o4" && ok "site login: a second run changes nothing" || bad "site login: not idempotent"
 
+
+# --- a .pre-* backup of this app's own service script is not "another app" on the same port -------------
+cp "$R/etc/rc.d/alpha" "$R/etc/rc.d/alpha.pre-alpha"
+$A --yes > "$R/o-pre" 2>&1 && ok "a .pre-alpha backup next to the service script does not trigger the port-clash refusal" || { bad "backup file counted as another app"; cat "$R/o-pre"; }
+rm -f "$R/etc/rc.d/alpha.pre-alpha"
+
 # --- refusals --------------------------------------------------------------------------------------
 sed 's/^PORT=.*/PORT=8101/' "$HERE/apps/beta/deploy/app.manifest" > "$W/up-beta/deploy/app.manifest"
 $B --yes > "$R/clash.out" 2>&1 && bad "port clash was accepted" || { grep -q 'port 8101' "$R/clash.out" && ok "a port used by another app is refused" || bad "port clash message"; }
