@@ -16,7 +16,7 @@ h1,h2,h3{line-height:1.2} .why{font-size:.95rem;opacity:.85}
 <ul>
 <li>The <b>site kit</b> folder (the <code>personal-site</code> repo): <code>htdocs\</code> and <code>server\install.sh</code>.</li>
 <li>The <b>riffbox</b> folder (GitHub: Code, Download ZIP; unpack and rename to <code>riffbox</code>; it must hold <code>app</code>, <code>static</code> and <code>deploy</code>).</li>
-<li>Your <b>latest pulled backup</b>: the copy of the server's <code>/var/riffbox-backup</code> (it holds <code>db</code> and <code>audio</code>). It is only as new as your last pull.</li>
+<li>Your <b>latest pulled backup</b>: the copy of the server's <code>/mnt/data/riffbox/backup</code> (it holds <code>db</code> and <code>audio</code>). It is only as new as your last pull. (If the data volume survived, you do not need it: see B3.)</li>
 <li>In your <b>password manager</b>: the site passphrase, the Riffbox passphrase, and the phone <b>upload token</b> (so the iPhone Shortcut keeps working).</li>
 <li>Your <b>SSH key</b> (<code>id_ed25519</code>), as the Tech Independence page explains.</li>
 </ul>
@@ -67,12 +67,23 @@ It ends with <code>PASS: Site login answers on 127.0.0.1:8099</code>. Then, on y
 <p>Apps installed after this (riffbox, music-share, Version Control) register themselves with the login when their own installer runs. If an app's installer says
 "the site login is not installed yet", do this section first and re-run it.</p>
 
-<h2>B3. The big storage volume (for Version Control)</h2>
-<p>Version Control keeps its audio on the 40 GB Vultr volume, mounted at <code>/var/version-control</code> as plain (unencrypted) storage. The full step-by-step, with the one destructive step
-marked, is <code>docs/STORAGE.md</code> in the <code>version-control</code> folder. In short: look first (<code>df -h; doas disklabel sd1; cat /etc/fstab</code>), copy anything on the old
-encrypted volume to your computer, then (first time only) label and format it, add one <code>/etc/fstab</code> line using the disk's DUID, mount it, and create <code>/var/version-control/.volume-ok</code>.</p>
-<p><b>After a wiped server, the volume still holds your audio: do NOT format it again.</b> Attach it, read its DUID with <code>doas disklabel sd1 | grep duid</code>, add the <code>fstab</code> line, mount it, and
-(if the <code>.volume-ok</code> file is missing) create it. At Tech Independence's storage question answer <b>n</b>. Version Control's installer refuses to run until the volume is mounted and shows that file.</p>
+<h2>B3. The data volume (all apps' data and /pub/)</h2>
+<p>Every app keeps its <b>data</b> (recordings, databases, backups, restore folders) on the separate plain 100 GB Vultr volume, mounted at <code>/mnt/data</code> (folders
+<code>riffbox/</code>, <code>music-share/</code>, <code>version-control/</code>, each with <code>data</code>, <code>backup</code>, <code>restore</code>). <code>/pub/</code> is the volume's first partition,
+mounted at <code>/var/www/htdocs/pub</code>. The <b>programs</b> stay on the boot disk and are rebuilt by each app's installer. The full step-by-step, with the one destructive step marked,
+how to expand it later and the reasons for the layout, is <code>docs/STORAGE.md</code> in the site kit.</p>
+<p><b>After a wiped server the volume still holds your data: do NOT format it again</b> (no <code>disklabel -E</code>, no <code>newfs</code>). In this order:</p>
+<ol>
+<li>Before running <code>ti.sh</code> on the new server do <code>mkdir -p /root/my &amp;&amp; touch /root/my/storageno</code> (or answer <b>n</b> to its storage question). Without it, <code>ti.sh</code> will try to encrypt or wait for an upload.
+Do not attach the volume yet.</li>
+<li>Finish <code>ti.sh</code> (section A). It recreates the website, mail and calendar (empty).</li>
+<li>In Vultr attach the volume (same region as the server), reboot, then <code>doas disklabel sd1 | grep duid</code>. It must equal the DUID in <code>/mnt/data/_server/README</code> (written when the volume was set up; keep a copy in your password manager too).</li>
+<li>Add the two lines from that README to <code>/etc/fstab</code> (<code>DUID.a /mnt/data ...</code> and <code>DUID.d /var/www/htdocs/pub ...</code>), then <code>doas mkdir -p /mnt/data &amp;&amp; doas mount -a</code>. Check <code>df -h /mnt/data /var/www/htdocs/pub</code>, that <code>/mnt/data/.volume-ok</code> exists
+(create it with <code>doas touch</code> only if the volume is mounted and the file is missing), that <code>/pub/</code> lists your files, and <code>doas chown YOURUSER:YOURUSER /var/www/htdocs/pub</code> if needed.</li>
+<li>Run each app's installer (sections C and D): it refuses until the volume is mounted; it creates the service user with the uid of the data already on the volume; it never touches the data. No restore step is needed
+(the in-app restore in section D is only for when the volume itself is lost).</li>
+</ol>
+<p><b>Running <code>ti.sh</code> again later (for example for email)</b> is safe as long as <code>ls /root/my</code> shows <code>storageno</code> and <code>webok</code>. Copy the files listed in <code>docs/STORAGE.md</code> section 0 first and <code>diff</code> them afterwards.</p>
 
 <h2>C. Riffbox</h2>
 <p>1. Upload the <code>riffbox</code> folder to <code>/home/YOURUSER/riffbox</code> on the server. (Only a staging copy: the installer copies it into place.)</p>
@@ -90,7 +101,7 @@ phone Shortcut keeps working, or press Enter for a new one (then put the new one
 If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 
 <h2>D. Your recordings (Riffbox data restore)</h2>
-<p>1. Upload your pulled backup folder (the one holding <code>db</code> and <code>audio</code>) into <code>/var/riffbox-restore</code> on the server.</p>
+<p>1. Upload your pulled backup folder (the one holding <code>db</code> and <code>audio</code>) into <code>/mnt/data/riffbox/restore</code> on the server.</p>
 <p>2. Open Riffbox in the browser, then <b>Backup and export</b>, then <b>Restoring</b>. It should say it found a backup and how many recordings. Press
 <b>Restore from this folder</b>. It only works into an <b>empty</b> library, so it cannot overwrite anything, and it never changes the folder you uploaded.</p>
 <p>3. If anything is missing or damaged it is listed, not hidden. Waveforms and play copies are rebuilt in the background afterwards.</p>
@@ -101,8 +112,8 @@ If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 <li><code>https://yourdomain/</code> loads, and <code>https://yourdomain/private/index.html</code> asks for the password (<code>tools\gate-test.ps1</code> on Windows, <code>tools/gate-test.sh</code> elsewhere).</li>
 <li>Log in to Riffbox at <code>/ideas/</code> and play a recording.</li>
 <li>Upload a memo from the iPhone Shortcut (<code>deploy/SHORTCUT.md</code>, section 6, in the riffbox folder).</li>
-<li>Press <b>Back up now</b> on the Backup and export page, then confirm a new file appears in <code>/var/riffbox-backup/db</code>.</li>
-<li>Pull <code>/var/riffbox-backup</code> to your computer again, so the new server has an off-server copy.</li>
+<li>Press <b>Back up now</b> on the Backup and export page, then confirm a new file appears in <code>/mnt/data/riffbox/backup/db</code>.</li>
+<li>Pull <code>/mnt/data/riffbox/backup</code> to your computer again, so the new server has an off-server copy.</li>
 </ol>
 
 <h2>F. If something goes wrong</h2>

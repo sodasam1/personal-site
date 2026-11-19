@@ -51,5 +51,14 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 `useradd`/`rcctl`/`relayd -n`, group file access, sibling-path cookies in every browser, `python3` hashing speed on the 1 vCPU box.
 
 ## Where each app's data lives
-riffbox `/var/riffbox`, music-share `/var/music-share`, Version Control `/var/version-control` (the big volume; its installer refuses to run unless it is mounted and holds `.volume-ok`).
-Each app's backups are pulled to your computer with FreeFileSync; none of them is a backup of itself.
+**Program files and settings on the boot disk; all data on one plain data volume**, so a wiped server is rebuilt by reinstalling the programs and pointing them at the kept data.
+| App | Program files | Data, backups, restore folder |
+|---|---|---|
+| riffbox | `/usr/local/riffbox` | `/mnt/data/riffbox/{data,backup,restore}` |
+| music-share | `/usr/local/music-share` | `/mnt/data/music-share/{data,backup,restore}` |
+| Version Control | `/usr/local/version-control` | `/mnt/data/version-control/{data,backup,restore}` (backups hard-link audio: data and backup stay on the same filesystem) |
+| `/pub/` | n/a | the volume's first partition, mounted at `/var/www/htdocs/pub` |
+| Site login | `/usr/local/login`; state in `/etc/site-auth` (boot disk, secrets) | none |
+Each app's manifest sets `DATA_ROOT=/mnt/data` and `REQUIRE_MOUNT=$DATA_ROOT`: the installer refuses to run, and the service script (`rc_pre`) refuses to start, unless the volume is mounted and holds
+`/mnt/data/.volume-ok`. On a rebuild the installer gives the service user the uid of the existing data folder. An app may override `DATA_ROOT` (a second volume). Procedure, expansion and the
+rebuild order: `docs/STORAGE.md` and `RESTORE.html` section B3. Each app's backups are still pulled to your computer with FreeFileSync; a backup on the same volume does not protect against losing it.
