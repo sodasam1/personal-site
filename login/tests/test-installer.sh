@@ -12,8 +12,8 @@ A="sh $W/up/deploy/install.sh"
 $A --check > "$R/c.out" 2>&1; [ ! -e "$R/etc/site-auth/master" ] && [ ! -e "$R/etc/sitelogin.conf" ] && ok "--check writes nothing" || bad "--check wrote something"
 $A --yes > "$R/o1" 2>&1 || { bad "install failed"; cat "$R/o1"; }
 D="$R/etc/site-auth"
-[ -f "$D/master" ] && [ "$(stat -c %a "$D/master")" = 600 ] && [ "$(cat "$D/generation")" = 1 ] && ok "master key (mode 600) and generation 1 created" || bad "master/generation"
-[ -f "$D/passphrase.hash" ] && [ "$(stat -c %a "$D/passphrase.hash")" = 600 ] && ! grep -q 'long test passphrase' "$D/passphrase.hash" && ok "passphrase stored only as a hash, mode 600" || bad "passphrase hash"
+[ -f "$D/master" ] && [ "$(stat -c %a "$D/master")" = 640 ] && [ "$(cat "$D/generation")" = 1 ] && ok "master key (mode 640: the service group can read it, others cannot) and generation 1 created" || bad "master/generation"
+[ -f "$D/passphrase.hash" ] && [ "$(stat -c %a "$D/passphrase.hash")" = 640 ] && ! grep -q 'long test passphrase' "$D/passphrase.hash" && ok "passphrase stored only as a hash, mode 640" || bad "passphrase hash"
 grep -qx 'sitelogin /private' "$D/apps.conf" && [ -f "$D/keys/sitelogin.key" ] && ok "the login service registered itself with its own key" || bad "self registration"
 for need in '<sitelogin> { 127.0.0.1 }' 'path "/login" forward to <sitelogin>' 'path "/private/\*" forward to <sitelogin>' 'forward to <sitelogin> port 8099'; do
   [ "$(grep -c "$need" "$R/etc/relayd.conf")" = 1 ] && ok "relayd has exactly one: $need" || bad "relayd: $need"

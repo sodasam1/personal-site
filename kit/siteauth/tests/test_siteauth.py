@@ -202,7 +202,7 @@ def test_ensure_app_is_idempotent_and_needs_the_login_service(tmp_path, setup):
                            capture_output=True, text=True)
     assert nodir.returncode == 3
     assert keys.read_apps(str(setup)) == [("alpha", "/alpha"), ("beta", "/beta")]
-    assert oct(os.stat(setup / "master").st_mode & 0o777) == "0o600"
+    assert oct(os.stat(setup / "master").st_mode & 0o777) == "0o640"     # group-readable: the login service (group _sitelogin) must read it; others get nothing
 
 
 def test_limiter_per_client_and_never_blocks_others():

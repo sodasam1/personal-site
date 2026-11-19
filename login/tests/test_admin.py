@@ -14,7 +14,7 @@ def test_set_passphrase_stores_only_a_hash_with_private_mode(tmp_path):
     assert r.returncode == 0
     stored = (tmp_path / "passphrase.hash").read_text().strip()
     assert "a perfectly long passphrase" not in stored and passwords.verify(stored, "a perfectly long passphrase")
-    assert oct((tmp_path / "passphrase.hash").stat().st_mode & 0o777) == "0o600"
+    assert oct((tmp_path / "passphrase.hash").stat().st_mode & 0o777) == "0o640"
 
 
 def test_short_passphrase_is_refused_and_nothing_is_written(tmp_path):
