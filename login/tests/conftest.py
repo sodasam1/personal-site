@@ -47,3 +47,7 @@ def client(env):
     c = app.test_client()
     c.clock, c.sleeps, c.env = clock, sleeps, env
     return c
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: uses the real (slow) password hash")
