@@ -56,7 +56,7 @@ doas sh -c 'touch /root/my/storageno; rm -f /root/my/storageok'
 2. Identify the disk: `sysctl hw.disknames` and `doas disklabel sd1`. It must be the new, empty 100 GB disk (zero `duid: 0000000000000000`, no partitions, size about 100 GB). **Stop here if not.**
    (If your root disk is `sd0` the new one is normally `sd1`; adjust every `sd1` below if it is not.)
 3. Open the Vultr "View Console" in case a bad `fstab` line stops boot; restore with `cp /etc/fstab.pre-volume /etc/fstab` (made below).
-4. Label: `doas disklabel -E sd1`, then at its prompt: `a d` (offset: press Enter; size: `15G`; FS type: `4.2BSD`), `a a` (offset: Enter; size: `*`; FS type: `4.2BSD`), `p` to check, `w`, `q`.
+4. Label: `doas disklabel -E sd1`, then at its prompt: `a d` (offset: press Enter to accept the default, normally 64 (if it offers 0, type 64); size: `15G`; FS type: `4.2BSD`), `a a` (offset: Enter; size: Enter, the default is all remaining space; FS type: `4.2BSD`), `p` to check (`d` near the start, `a` after it reaching the end), `w`, `q`. Nothing is written until `w`.
 5. `doas newfs sd1a && doas newfs sd1d`
 6. `doas disklabel sd1 | grep duid`  (a 16-hex-digit name; write it in your notes)
 7. `doas cp /etc/fstab /etc/fstab.pre-volume`, then (replace DUID):
@@ -70,6 +70,7 @@ Save the two fstab lines, the DUID and the date in `/mnt/data/_server/README`. `
 **Boot risk:** an fstab entry for a disk that is not attached stops `fsck` and drops boot to a single-user prompt; recover via the Vultr console. The service guard (below) protects the apps either way.
 
 ## 3. /pub/ onto its partition
+Confirmed on your server (11/2026): `httpd.conf` has no `chroot` line (so `/var/www` is the default chroot) and no `root` override, so `/pub/` is `/var/www/htdocs/pub`, and `/` and `/usr/local` are the only mounted partitions (`/var` is on `/`). No `httpd.conf` edit is needed.
 Look first: `cat /etc/httpd.conf; ls -ld /var/www /var/www/htdocs /var/www/htdocs/pub; ls -l /var/www/htdocs/pub; du -sh /var/www/htdocs/pub`.
 A mount hides what is underneath, so save the files first:
 ```
