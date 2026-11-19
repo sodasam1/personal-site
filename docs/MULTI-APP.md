@@ -1,6 +1,6 @@
 # Several apps, one server, one login
 
-Status: **built on branch `shared-kit-installer-login-and-theme`, not yet deployed or merged.** Written so it can be read cold.
+Status: **merged to `main`; the login service and Riffbox are deployed (2026-11-19), music-share is being installed, Version Control is not installed yet.** Written so it can be read cold.
 Principles are Tech Independence's: your data as plain files and SQLite; base tools first; few, slow-changing dependencies (Flask,
 waitress, ffmpeg) at app level only; no bespoke code where something mature exists; upload with FreeFileSync, the server never fetches.
 
