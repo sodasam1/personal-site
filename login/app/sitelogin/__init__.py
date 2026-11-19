@@ -10,6 +10,7 @@
 State lives in /etc/site-auth (see siteauth/keys.py). This service alone can read the master key and the passphrase hash.
 """
 import os
+import threading
 import time
 from html import escape
 from pathlib import Path
@@ -79,6 +80,7 @@ def create_app(overrides=None):
         return value
     max_fails, window = whole("SITELOGIN_MAX_FAILS", 5), whole("SITELOGIN_WINDOW_MINUTES", 15) * 60
     limiter, gate = Limiter(clock, per_key_max=max_fails, window=window), GlobalGate(clock, window=window)
+    attempt_lock = threading.Lock()
 
     @app.after_request
     def headers(resp):
@@ -124,7 +126,12 @@ def create_app(overrides=None):
         request.max_content_length = 4096                      # nobody needs more than a passphrase here
         nxt = request.form.get("next", "/")
         key = client_key()
-        wait = limiter.wait_for(key)
+        # Check the limit and use up one attempt in a single step. (Checking first and recording the failure after the slow password check let an
+        # attacker send many guesses at the same instant, all passing the check before any was judged wrong.) A correct passphrase clears it again.
+        with attempt_lock:
+            wait = limiter.wait_for(key)
+            if not wait:
+                limiter.failed(key)
         if wait:
             resp = page(nxt, "Too many attempts. Try again later.", 429)
             resp.headers["Retry-After"] = str(wait)
@@ -150,8 +157,7 @@ def create_app(overrides=None):
                     resp.set_cookie(f"site_{app_name}", make_token(keys.derive(master, app_name, gen), now), max_age=30 * 86400,
                                     path=path, httponly=True, secure=secure, samesite="Lax")
                 return resp
-            limiter.failed(key)
-            gate.note_failure()
+            gate.note_failure()                                 # (this attempt was already counted against the client above)
             return page(nxt, "That did not work.", 401)
         finally:
             if pressure:
