@@ -43,6 +43,29 @@ Why: without `storageno`, `ti.sh` runs `disklabel`/`bioctl` on `sd1` (it would e
 it copies its own `relayd.conf`/`httpd.conf` over `/etc` and **erases your `/ideas` and `/music` routes**. Nothing else in `ti.sh` touches `/etc/fstab`, `/mnt`, `/usr/local/<app>`, `/etc/rc.d/<app>`
 or `/etc/<app>.conf`. If `webok` is missing, do not run `ti.sh`. After the run, `diff ~/pre-ti/<file> /etc/<file>` for each file: only mail-related differences are expected.
 
+## The boot disk's two partitions, and what goes on the small one
+Your server's own disk (`sd0`) is split into two mounted filesystems (from `mount` and `df`, 2026-11-19):
+
+| Mount | Device | Size | Holds |
+|---|---|---|---|
+| `/` | `sd0a` | 21.3 GB | the whole system: `/etc` (settings, secrets, `site-auth`), `/var` (logs, mail spool, package database, Radicale), `/home`, `/tmp`, `/root`, the website in `/var/www`, `/mnt` |
+| `/usr/local` | `sd0d` | 2.5 GB (about 0.8 GB used when checked) | **only things installed with `pkg_add`**, plus our programs: `/usr/local/riffbox`, `/usr/local/login`, `/usr/local/music-share` (a few MB each) |
+
+**Why it is split (inference, not verified):** neither `ti.sh` nor our installers ever repartition `sd0` (`ti.sh` touches only the extra volume), so the split comes from how the OpenBSD image was installed at Vultr. The mount flags
+`nodev, wxallowed` on `/usr/local` point to the usual reason: OpenBSD enforces W^X (memory is never writable and executable at once), but some packaged programs need an exception, and the `wxallowed` flag grants it
+**only on that one filesystem**, so `/` stays strict. To see the real layout: `doas disklabel sd0`, `cat /etc/fstab`, `swapctl -l`.
+
+**What lives on the small one:** package binaries and libraries (Python and Flask, `ffmpeg` and its many libraries, Radicale, Dovecot, mutt, curl, rsync) and our program folders. **Not** on it: any app data (that is on the data volume),
+settings and secrets (`/etc`), logs (`/var/log`), the package database (`/var/db/pkg`).
+
+**How to keep it small**
+- Install only what a service needs. Compilers, Node, desktop libraries and other big packages are what fill it; `ffmpeg` is already the largest.
+- After removing something: `doas pkg_delete -a -n` shows (dry run) which leftover dependencies nothing needs; read the list, then `doas pkg_delete -a`. Never `-aa`.
+- Look at it from time to time: `df -h /usr/local` and `du -sh /usr/local/* | sort -h | tail`. Keep at least 500 MB free: `pkg_add -u` and `sysupgrade` need room to write new package versions.
+- Our apps put nothing but program files there, and the installers only `--delete` inside their own `/usr/local/<app>` folder.
+- Idea, not built yet: a free-space warning in the installers (`docs/TODO.md` T-14).
+- If it ever fills, it cannot be grown like the data volume (it is a fixed slice of the boot disk); the fix would be reinstalling packages elsewhere or rebuilding the server, so watch it instead.
+
 ## 1. Clean up what the encrypted volume left (changes: removes two helper scripts, adds a marker)
 ```
 mount | grep mnt; doas bioctl softraid0; ls -l /usr/local/sbin/m /usr/local/sbin/m-x; grep -n 'sd[0-9]' /etc/fstab; doas crontab -l      # look first

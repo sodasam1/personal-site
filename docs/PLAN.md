@@ -1,5 +1,7 @@
 # Plan v5: smaller server footprint, standard parts only, conventional password gate
 
+> **Update 2026-11-19:** the httpd Basic-auth rule for `/private/*` described below has been replaced. `/private/` is served by the site login service (cookie login) and httpd answers 404 for it as a safety net (`server/install.sh`; `docs/DEPLOY.md` section 5). This plan is kept as the record of the original reasoning.
+
 ## 0. Answers first
 
 **Was the gate in v4 standard practice? Half of it, so I changed it.**

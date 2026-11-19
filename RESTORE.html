@@ -25,14 +25,16 @@ h1,h2,h3{line-height:1.2} .why{font-size:.95rem;opacity:.85}
 <p>Follow the Tech Independence page until your website works. Then upload your <code>htdocs</code> folder as that page says (include <code>htdocs/private/</code>).
 Do <b>not</b> run <code>ti.sh</code> for your real domain on a second server to "practise": it deletes the domain's DNS records and re-creates them.</p>
 
-<h2>B. The site's password rule for /private/</h2>
+<h2>B. The web server's refusal of /private/ (safety net)</h2>
+<p>The files in <code>htdocs/private/</code> are served by the <b>site login</b> (section B2), which needs your cookie. This step makes the web server itself answer 404 for <code>/private/</code>,
+so if the login's route in <code>relayd.conf</code> were ever lost, the files would not be handed out to anyone. Do B2 <b>first</b>: this script refuses to run until <code>relayd.conf</code> has a <code>/private</code> rule.</p>
 <h3>Easy way: one file</h3>
 <p>Put <code>install.sh</code> (from the kit's <code>server</code> folder) in your home folder on the server, then:</p>
 <pre>doas sh ~/install.sh --check</pre>
 <p class="why"><code>doas</code> runs as root; <code>sh</code> runs the file; <code>--check</code> only shows what would change. Nothing is changed.</p>
 <pre>doas sh ~/install.sh</pre>
-<p class="why">Applies it. Asks for a user name and a long passphrase (20+ random characters). Safe to run twice.</p>
-<p>Undo: <code>doas sh ~/install.sh --remove</code>. Change the password: <code>doas sh ~/install.sh --passwd</code>.</p>
+<p class="why">Applies it. Safe to run twice. If an older version of this script had added a password rule, the three lines are replaced in place. The old password file <code>/var/www/htpasswd</code> is left where it is.</p>
+<p>Undo: <code>doas sh ~/install.sh --remove</code> (then only the login service guards <code>/private/</code>).</p>
 
 <h3>By hand (if the script ever stops working)</h3>
 <pre>doas cp -p /etc/httpd.conf /etc/httpd.conf.pre-kit</pre>
@@ -42,14 +44,9 @@ Do <b>not</b> run <code>ti.sh</code> for your real domain on a second server to 
 Move to its last line, the <code>}</code> at the left edge. Press <code>O</code> (capital letter o) to open a line above it, then type the three lines below.
 Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
 <pre>  location "/private/*" {
-    authenticate "private" with "/htpasswd"
+    block return 404
   }</pre>
-<p class="why">Line 1: any address starting with <code>/private/</code>. Line 2: ask for a password, checked against the file
-<code>/htpasswd</code>, which is <code>/var/www/htpasswd</code> because the web server is locked inside <code>/var/www</code>. Line 3: end of the rule.</p>
-<pre>doas htpasswd /var/www/htpasswd YOURUSER</pre>
-<p class="why">Creates the password file and asks for the passphrase. It is stored only as a bcrypt hash.</p>
-<pre>doas chown root:www /var/www/htpasswd; doas chmod 640 /var/www/htpasswd</pre>
-<p class="why">The web server's account (<code>www</code>) must be able to read the file; nobody else may.</p>
+<p class="why">Line 1: any address starting with <code>/private/</code>. Line 2: answer "not found" (the login service, not the web server, serves these files). Line 3: end of the rule.</p>
 <pre>doas httpd -n</pre>
 <p class="why">Checks the settings for mistakes without applying them. It should say <code>configuration OK</code>. If not, put the
 <code>.pre-kit</code> copy back: <code>doas cp -p /etc/httpd.conf.pre-kit /etc/httpd.conf</code>.</p>

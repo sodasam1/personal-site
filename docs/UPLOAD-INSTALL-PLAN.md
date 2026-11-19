@@ -3,7 +3,7 @@
 > **Layout update (2026-11-19), read first.** This plan was written before two decisions: (1) uploaded install folders live under **`/home/me/staging/<app>`**, not at the top of the home folder
 > (`server-mirror\home\me\staging\<app>` on your computer; `install.sh` for the site kit stays at `/home/me/install.sh`); (2) every app's **data, backups and restore folders live on the data volume** at
 > `/mnt/data/apps/<app>/{data,backup,restore}` (so the pull and restore jobs point there, not at `/var/...`), and the volume is already set up (see `docs/STORAGE.md`). The paths below have been updated;
-> the branch names refer to the branches **before** they are merged (after the merges described in the merge guide, use each repo's default branch).
+> the branch column says which branch to download (2026-11-19).
 
 Written to extend `docs/UPLOAD-PLAN.md` (your existing FreeFileSync design). Same rules: **Update, never Mirror, on `/home/me`; look at the preview every time;
 nothing is deleted without you.** Verified: file counts and sizes below (measured on the built branches), and that each app's own installer works in test mode.
@@ -15,14 +15,14 @@ Uploading only puts files in your home folder (`/home/me/staging/<app>/`). **Not
 The first three apps need no root for the upload; the installers use `doas`.
 
 ## 1. What you upload, and where it comes from
-Branches (all pushed, none merged yet; the new names are the ones that carry the data-volume layout):
+Branches (personal-site, riffbox and music-share are merged: download `main`; Version Control is not merged yet):
 
 | Folder on the server | Comes from | Branch | Notes |
 |---|---|---|---|
-| `/home/me/staging/login/` | repo `personal-site`, its **`login/`** folder | `kit-data-volume-contract-and-expansion-docs` | the site login service (new) |
-| `/home/me/staging/riffbox/` | repo `riffbox`, whole | `riffbox-data-on-separate-volume` | replaces your current riffbox folder |
-| `/home/me/staging/music-share/` | repo `music-share`, whole | `music-share-data-on-separate-volume` | new |
-| `/home/me/staging/version-control/` | repo `version-control`, whole | `version-control-data-on-shared-volume` | new |
+| `/home/me/staging/login/` | repo `personal-site`, its **`login/`** folder | `main` | the site login service (new) |
+| `/home/me/staging/riffbox/` | repo `riffbox`, whole | `main` | replaces your current riffbox folder |
+| `/home/me/staging/music-share/` | repo `music-share`, whole | `main` | new |
+| `/home/me/staging/version-control/` | repo `version-control`, whole | `version-control-data-on-shared-volume` until it is merged into its default branch, then that default branch | new |
 | `/home/me/install.sh` | unchanged | | the site kit installer: **no re-upload needed** |
 | `/var/www/htdocs` | unchanged | | **pair A needs no upload this time** |
 
@@ -162,7 +162,7 @@ doas sh ~/staging/login/deploy/install.sh
 It installs the packages if missing, makes the user and folders, **asks for your one passphrase** (15 characters or more; it is stored only as a salted hash), and asks **y** before adding `/login` and `/private` routes
 to `/etc/relayd.conf` (it validates with `relayd -n` first and keeps `/etc/relayd.conf.pre-sitelogin`). It ends with `PASS: Site login answers on 127.0.0.1:8099`.
 Then from your computer: `powershell -ExecutionPolicy Bypass -File tools\gate-test-login.ps1 -Domain sanjaysubramanian.com` (personal-site ZIP). All lines should say PASS (it makes one wrong sign-in on purpose).
-**Good state:** `https://sanjaysubramanian.com/login` shows the sign-in form; `/private/index.html` now needs the cookie login instead of the browser's password popup (the old htpasswd rule is still on the server, unused, until you remove it).
+**Good state:** `https://sanjaysubramanian.com/login` shows the sign-in form; `/private/index.html` now needs the cookie login instead of the browser's password popup (the old htpasswd rule is still on the server, unused, until you replace it: `docs/DEPLOY.md` section 5).
 
 ### Step 3: Riffbox (updated code; changes nothing about how you log in yet)
 ```
