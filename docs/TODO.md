@@ -20,11 +20,13 @@ Items copied from another repo's own notes say where they came from. Those notes
 | T-01 | **Expand the central login to Riffbox.** Today Riffbox signs you in with its own passphrase and cookie; the site login only covers `/private/`. Plan: (1) run the Riffbox installer once with no flags so it registers Riffbox and writes `/etc/site-auth/keys/riffbox.key`; (2) add `RIFFBOX_AUTH=both` to `/etc/riffbox.conf`, restart, sign in at `/login`, check `/ideas/`; (3) after a few days of normal use set `RIFFBOX_AUTH=site`; (4) later remove the local passphrase (T-12). The phone upload token is unaffected in every mode. Back out any time by setting `local`. | riffbox + site | `riffbox/docs/AUTH.md` section 6. Prerequisite (the login service) is installed and verified (2026-11-19). |
 | T-02 | **Practise a restore once**, on your computer: pull a backup, run `deploy/practice_restore.py` on it. | riffbox | The first restore should not be an emergency. `riffbox/docs/PLAN.md` section 6. |
 | T-03 | **Pull backups to your computer regularly.** A FreeFileSync pull job per app: `/mnt/data/apps/<app>/backup` to `server-mirror\mnt\data\apps\<app>\backup`. A backup on the same volume does not survive losing the volume. | server | `docs/UPLOAD-INSTALL-PLAN.md` section 3.2. Press *Back up now* in each app first. |
-| T-04 | **Finish installing music-share**, then the reboot test: all services come back by themselves after `doas reboot`, both volumes mounted. | music, server | Install steps in `RESTORE.html` C and `docs/UPLOAD-INSTALL-PLAN.md` step 4. |
-| T-05 | **Merge Version Control's branch** (`version-control-data-on-shared-volume` into its default branch), optionally rename that default branch to `main`, then install it. | vc | Needs the data volume (done) and the login (done). |
+| T-04 | **Update music-share on the server, then the reboot test.** Its address is now `/music-share`: re-run its installer with `--repair` (it asks before touching `relayd.conf` and `/etc/musicshare.conf`), sign in again once, then `doas reboot` and check all services and both volumes come back by themselves. | music, server | Steps: `version-control/docs/DEPLOY.md` sections 3 and 5. Needs the polish branch merged first (T-09). Old `/music/...` links stop working (D-05). |
+| T-05 | **Merge Version Control's branch** `version-control-visual-cohesion-and-deploy-docs`. It already contains `version-control-data-on-shared-volume`, so this one merge covers both; optionally rename the default branch to `main` afterwards (D-04). | vc | Built on the data volume and the login (both done). |
 | T-06 | **Email via `ti.sh`.** Before running: `ls /root/my` must show `storageno` and `webok`; copy the baseline files again; diff afterwards (`docs/STORAGE.md` section 0). | server | Still pending. |
 | T-07 | **Merge `planned-features-and-upload-workflow-docs`** (this file, the partition notes and the PowerShell gate-test fix) and delete its branch and `gate-test-powershell-passphrase-fix`. | site | |
 | T-08 | **Prove the start guard works on OpenBSD**: temporarily rename `/mnt/data/.volume-ok`, `doas rcctl restart <app>` must refuse to start, then rename it back. I could not run this; the guard (`rc_pre`) is written from the documented behaviour. | server | `kit/appkit/appkit.sh`. |
+| T-09 | **Merge music-share's `music-share-soundcloud-style-polish-and-speed`** (SoundCloud-style look with no social parts; accurate "played" counts; link-preview robots no longer inflate "opened"; cached, compressed assets; upload progress bar). | music | Based on today's `main`: a clean merge. What it does is listed in `music-share/README.md`, "Look and feel". |
+| T-21 | **Install Version Control** (after T-05): `--check`, then the installer, then its five-point checklist and the pull job for its backup folder. | vc, server | `version-control/docs/DEPLOY.md` sections 4 and 7. Decision D-03 was waiting on the guide; it now exists. |
 
 ## P2: worth doing soon
 
@@ -41,6 +43,9 @@ Items copied from another repo's own notes say where they came from. Those notes
 | T-18 | **Monthly self-test and yearly-care checklist** for Riffbox; run the audio browser tests in Firefox on a machine with a sound device. | riffbox | Riffbox README "Planned features". |
 | T-19 | **Make the site-kit `install.sh` tidy too**: it still lives at `/home/me/install.sh`; moving it to `~/staging/` means one `staging` pair covers everything. Any folder works (it is self-contained). | site | `docs/UPLOAD-PLAN.md` pair B. |
 | T-20 | **Cross-link the lists**: a one-line pointer in each repo's README to this file, so planned work in one place is found from every repo. | site, riffbox, music, vc | |
+| T-22 | **Move the shared look into the kit.** `static/listen.css` (round play button, cards, header, bottom bar, favicon) is the same file in music-share and Version Control, kept identical by hand. Make it a kit part (`kit/listen`) so `check-vendored.sh` catches drift. | site (kit), music, vc | Built this way to avoid a third merge; the risk is the two copies drifting. |
+| T-23 | **Smaller kit parts.** Apps vendor all of `audio` and `wave` although music-share uses neither the loudness/slice helpers nor the loop code (about 12 KB of unused files). Split the kit parts so an app ships only what it uses. | site (kit) | Found in the size check, 2026-11-19. Gzipped, the whole front end of music-share is about a fifth of its raw size. |
+| T-24 | **Check the new counts on real use.** After a week, do "played" and "opened" in the Studio match what friends actually did? If a chat app still inflates "opened", add its name to `ROBOT` in `app/musicshare/__init__.py`. | music | Robot detection is by browser-name keywords (unverified against every app). |
 
 ## P3: someday or optional
 
@@ -51,8 +56,9 @@ Items copied from another repo's own notes say where they came from. Those notes
 | T-32 | **Timestamped markers on the waveform**; **waveform thumbnails** in the list; **the memo's creation date** passed from the Shortcut as the date recorded; **a home-screen icon.** | riffbox | Riffbox README. |
 | T-33 | **One row-actions (⋯) menu** and a **two-step edit form** ("More details" collapsed). Possible future features, not planned (owner, 15 Nov 2026). | riffbox | Riffbox README. |
 | T-34 | **Longer phone check** of Resurface, Compact rows, grouping from the Inbox, the Menu's Style and Colors. | riffbox | `riffbox/docs/PLAN.md` section 6. |
-| T-35 | **music-share: comments, versions** (versions are the Version Control app) and **export to a zip or folder.** Not built; backup and restore only. | music | `music-share/README.md`. |
+| T-35 | **music-share: export to a zip or folder.** Not built; backup and restore only. (Comments and versions are deliberately not wanted here: versions are the Version Control app.) | music | `music-share/README.md`. |
 | T-36 | **A second data volume** (option 2 in `docs/STORAGE.md` section 5), the natural home for Version Control if the first fills. | server | |
+| T-37 | **Show the last list instantly on repeat visits** (keep the last Studio list in the browser, draw it at once, refresh behind it). Not built: with the menu and placeholders already instant it may not be needed. | music, vc | Measure first with the `Server-Timing` header. |
 
 ## DECISION: needs you
 
@@ -60,8 +66,9 @@ Items copied from another repo's own notes say where they came from. Those notes
 |---|---|---|
 | D-01 | **When to switch Riffbox to `RIFFBOX_AUTH=both`, then `site`** (T-01). | After a few days of using the login for `/private/`. |
 | D-02 | **How relaxed should the lockout be?** Settings exist per service: `SITELOGIN_MAX_FAILS`/`SITELOGIN_WINDOW_MINUTES`, `RIFFBOX_LOGIN_MAX_FAILS`/`RIFFBOX_LOGIN_WINDOW_MINUTES` (default 5 tries per 15 minutes). | Suggested relaxed values: 15 tries per 5 minutes. |
-| D-03 | **Install Version Control now or later?** | Needs T-05. |
+| D-03 | **Install Version Control now or later?** | The deploy guide exists (T-21); needs T-05 first. |
 | D-04 | **Rename the Version Control default branch to `main`?** | personal-site, riffbox and music-share already use `main`. |
+| D-05 | **Redirect old `/music/...` links to `/music-share/...`?** | Links already sent under `/music` stop working after the rename (T-04). A redirect is a small relayd rule or app route; only needed if you sent links you still care about. |
 
 ## DEFERRED: you chose not to, for now
 
@@ -76,6 +83,8 @@ Serving the page from `htdocs` instead of the app; a standard-library-only serve
 
 ## Known unverified (settle by doing; then remove from this list)
 - OpenBSD behaviour of the start guard (`rc_pre`), `noexec` on the data partition, growing a partition in place with `disklabel` and `growfs` (T-08, T-16).
+- iPhone Safari: the round play button icons (CSS masks), A/B switching in Version Control, and the bottom player bar. The browser tests cannot judge phones or sound.
+- Whether gzip'd answers and `Server-Timing` pass through relayd unchanged (they should; look at the Network tab once).
 - FreeFileSync menu names and filter syntax in your version (`docs/UPLOAD-PLAN.md` section 3).
 - Whether `httpd` would follow a symlink out of its root (only matters if `/pub/` is ever moved into one filesystem with the apps).
 
@@ -85,3 +94,5 @@ Serving the page from `htdocs` instead of the app; a standard-library-only serve
 - 2026-11-19: installers write start guards and rebuilt service users adopt the data's uid; apps live under `/mnt/data/apps/<app>/`; upload staging under `~/staging/<app>`.
 - 2026-11-19: Riffbox and site-login lockout limits made configurable (defaults unchanged).
 - 2026-11-19: big uploads park on the data volume (music-share, Version Control), as Riffbox already did.
+- 2026-11-19: Studio paints its menu at once (menu 1367 ms to 67 ms in a test with a 300 ms API delay); music-share served at `/music-share`; quiet Studio link for the signed-in owner (merged to music-share `main`).
+- 2026-11-19: built, waiting for you to merge: music-share look and speed (T-09); Version Control shares music-share's look and has a deploy guide (T-05, T-21).
