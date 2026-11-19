@@ -26,7 +26,7 @@ the uid/gid of the data already on the volume (appkit does this when the app's d
   mount **inside** `/var/www`: partition `d`, mounted at `/var/www/htdocs/pub`.
 - Only the **last** partition on a disk can grow. So: `d` (public files, small and fixed) comes **first on the disk**; `a` (all app data) comes **last** and takes the rest.
   Partition letters need not follow position.
-- Suggested sizes for 100 GB: `d` = 15 GB, `a` = the rest. (`du -sh /var/www/htdocs/pub` shows what you have now.) `pub` cannot grow without moving data, so be generous.
+- Chosen sizes for the 100 GB volume: `d` = 25 GB (`/pub/`), `a` = 75 GB (all app data). (`du -sh /var/www/htdocs/pub` shows what you have now.) `pub` cannot grow without moving data, so be generous.
 - Mount by **DUID** (the disk's permanent name) so `sd1`/`sd2` renumbering never breaks a mount.
 - Do not leave an unallocated gap at the end; give the last partition everything.
 - Alternative with no split: one partition at `/var/www/data` with `pub` as a relative symlink or a changed `location "/pub/*"` root in `httpd.conf`. Growth is trivial but
@@ -56,7 +56,7 @@ doas sh -c 'touch /root/my/storageno; rm -f /root/my/storageok'
 2. Identify the disk: `sysctl hw.disknames` and `doas disklabel sd1`. It must be the new, empty 100 GB disk (zero `duid: 0000000000000000`, no partitions, size about 100 GB). **Stop here if not.**
    (If your root disk is `sd0` the new one is normally `sd1`; adjust every `sd1` below if it is not.)
 3. Open the Vultr "View Console" in case a bad `fstab` line stops boot; restore with `cp /etc/fstab.pre-volume /etc/fstab` (made below).
-4. Label: `doas disklabel -E sd1`, then at its prompt: `a d` (offset: press Enter to accept the default, normally 64 (if it offers 0, type 64); size: `15G`; FS type: `4.2BSD`), `a a` (offset: Enter; size: Enter, the default is all remaining space; FS type: `4.2BSD`), `p` to check (`d` near the start, `a` after it reaching the end), `w`, `q`. Nothing is written until `w`.
+4. Label: `doas disklabel -E sd1`, then at its prompt: `a d` (offset: press Enter to accept the default, normally 64 (if it offers 0, type 64); size: `25G`; FS type: `4.2BSD`), `a a` (offset: Enter; size: Enter, the default is all remaining space; FS type: `4.2BSD`), `p` to check (`d` near the start, `a` after it reaching the end), `w`, `q`. Nothing is written until `w`.
 5. `doas newfs sd1a && doas newfs sd1d`
 6. `doas disklabel sd1 | grep duid`  (a 16-hex-digit name; write it in your notes)
 7. `doas cp /etc/fstab /etc/fstab.pre-volume`, then (replace DUID):
