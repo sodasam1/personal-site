@@ -52,6 +52,8 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 `VENV_PY=... sh tools/test-kit.sh` (offline). On the server only `--check` runs and the gate scripts. Unverified by me (no OpenBSD here):
 `useradd`/`rcctl`/`relayd -n`, group file access, sibling-path cookies in every browser, `python3` hashing speed on the 1 vCPU box.
 
+All planned work, with priorities, for every app and the server: `docs/TODO.md`.
+
 ## Where each app's data lives
 **Program files and settings on the boot disk; all data on one plain data volume**, so a wiped server is rebuilt by reinstalling the programs and pointing them at the kept data.
 | App | Program files | Data, backups, restore folder |
