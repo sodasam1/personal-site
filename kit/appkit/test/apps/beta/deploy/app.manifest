@@ -1,0 +1,7 @@
+NAME=beta-app
+UNIXNAME=betaapp
+TITLE="Beta App"
+BASE_PATH=/beta
+PORT=8102
+ROUTES="/beta /private"
+DIRS="/var/beta-app,@svc,@svc,750"

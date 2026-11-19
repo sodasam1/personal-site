@@ -1,0 +1,8 @@
+NAME=alpha
+UNIXNAME=alpha
+TITLE=Alpha
+BASE_PATH=/alpha
+PORT=8101
+DIRS="/var/alpha,@svc,@svc,750 /var/alpha-backup,@svc,@svc,755"
+CONF_LINES="ALPHA_SECRET=@HEX32@
+ALPHA_BASE_PATH=/alpha"

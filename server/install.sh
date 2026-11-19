@@ -1,9 +1,9 @@
 #!/bin/sh
 # Site kit: server-level installer. Adds ONE thing to a Tech Independence server: a password rule for /private/.
-#   doas sh ~/server/install.sh            apply (safe to run twice)
-#   doas sh ~/server/install.sh --check    show exactly what would change; change nothing
-#   doas sh ~/server/install.sh --passwd   set or change the password for /private/
-#   doas sh ~/server/install.sh --remove   take the rule out again (the password file is kept)
+#   doas sh ~/install.sh            apply (safe to run twice)
+#   doas sh ~/install.sh --check    show exactly what would change; change nothing
+#   doas sh ~/install.sh --passwd   set or change the password for /private/
+#   doas sh ~/install.sh --remove   take the rule out again (the password file is kept)
 # It never touches Riffbox, relayd, pf, or any line of /etc/httpd.conf that Tech Independence wrote.
 # One self-contained file: no other file is needed. Test hook: SITEKIT_ROOT=/some/dir runs against a copy and skips every OpenBSD-only command.
 set -eu
