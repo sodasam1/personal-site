@@ -33,6 +33,8 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 - **The two older systems:** httpd Basic auth on `/private/*` is replaced because relayd now sends `/private` to the login service, which
   serves the same files behind the cookie (one hash instead of two, throttled). The httpd block can be removed later with
   `doas sh ~/server/install.sh --remove` (kept until you say). The riffbox phone-upload bearer token is unchanged.
+- **How strict the wrong-passphrase limit is:** by default 5 wrong tries per client in 15 minutes, then that client waits. Relax it in `/etc/sitelogin.conf` with `SITELOGIN_MAX_FAILS=15` and
+  `SITELOGIN_WINDOW_MINUTES=5` (whole numbers; a typo stops the service at start-up), then `doas rcctl restart sitelogin`. The spread-out-attack slow lane never locks anyone out. Riffbox has its own pair (`RIFFBOX_LOGIN_MAX_FAILS`, `RIFFBOX_LOGIN_WINDOW_MINUTES`) for its local passphrase.
 - **Lifetimes:** 30 days from sign-in, 7 days idle; use refreshes the idle clock hourly. `Secure`, `HttpOnly`, `SameSite=Lax`.
 - **Log everyone out of everything:** `doas python3 /usr/local/login/app/siteauth/keys.py rotate --dir /etc/site-auth` (bumps the
   generation; apps re-read their key file on change, no restart).

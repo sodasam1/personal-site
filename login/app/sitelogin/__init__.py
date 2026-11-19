@@ -64,7 +64,21 @@ def create_app(overrides=None):
     app = Flask(__name__, static_folder=None)
     auth = SiteAuth(app, name="sitelogin", key_file=os.path.join(auth_dir, "keys", "sitelogin.key"), cookie_path="/private",
                     login_url="/login", clock=clock, secure=secure, samesite="Lax")
-    limiter, gate = Limiter(clock), GlobalGate(clock)
+    # Wrong-passphrase limit per client: SITELOGIN_MAX_FAILS failures within SITELOGIN_WINDOW_MINUTES, then that client waits (default 5 in 15).
+    # A typo stops the service at start-up rather than silently using the default.
+    def whole(name, default):
+        raw = str(conf.get(name, "")).strip()
+        if not raw:
+            return default
+        try:
+            value = int(raw)
+        except ValueError:
+            raise RuntimeError(f"{name} must be a whole number (got '{raw}')") from None
+        if value < 1:
+            raise RuntimeError(f"{name} must be at least 1 (got {value})")
+        return value
+    max_fails, window = whole("SITELOGIN_MAX_FAILS", 5), whole("SITELOGIN_WINDOW_MINUTES", 15) * 60
+    limiter, gate = Limiter(clock, per_key_max=max_fails, window=window), GlobalGate(clock, window=window)
 
     @app.after_request
     def headers(resp):

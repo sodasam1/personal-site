@@ -1,6 +1,7 @@
 import os
 import sys
 
+import pytest
 from conftest import PASSPHRASE
 from siteauth import keys, read_token
 
@@ -84,6 +85,28 @@ def test_per_client_throttle_after_five_failures(client):
     assert r.status_code == 429 and int(r.headers["Retry-After"]) > 0
     client.clock.t += 901
     assert client.post("/login", data={"passphrase": PASSPHRASE}).status_code == 303
+
+
+def test_the_limit_and_window_can_be_relaxed_in_the_settings(env):
+    from sitelogin import create_app
+    from conftest import Clock
+    clock = Clock()
+    app = create_app({"SITELOGIN_AUTH_DIR": str(env["dir"]), "SITELOGIN_PRIVATE_DIR": str(env["private"]), "SITELOGIN_INSECURE_COOKIES": "1",
+                      "SITELOGIN_MAX_FAILS": "12", "SITELOGIN_WINDOW_MINUTES": "2", "clock": clock, "sleep": lambda s: None})
+    c = app.test_client()
+    for _ in range(12):
+        assert c.post("/login", data={"passphrase": "bad"}).status_code == 401           # five is no longer the limit
+    r = c.post("/login", data={"passphrase": PASSPHRASE})
+    assert r.status_code == 429 and int(r.headers["Retry-After"]) <= 2 * 60 + 1          # locked, but only for the 2-minute window
+    clock.t += 2 * 60 + 1
+    assert c.post("/login", data={"passphrase": PASSPHRASE}).status_code == 303
+
+
+def test_bad_limit_settings_stop_the_service_at_start_up(env):
+    from sitelogin import create_app
+    for name, val in (("SITELOGIN_MAX_FAILS", "ten"), ("SITELOGIN_MAX_FAILS", "0"), ("SITELOGIN_WINDOW_MINUTES", "-1")):
+        with pytest.raises(RuntimeError, match=name):
+            create_app({"SITELOGIN_AUTH_DIR": str(env["dir"]), "SITELOGIN_PRIVATE_DIR": str(env["private"]), name: val})
 
 
 def test_a_spread_out_attack_slows_but_never_locks_out_the_owner(client):
