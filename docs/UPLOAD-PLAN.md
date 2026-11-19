@@ -1,114 +1,140 @@
-# One-step uploads with FreeFileSync (you build it by hand; this is the plan)
+# One-click uploads with FreeFileSync (replaces your three upload scripts)
 
-Goal: after editing, **double-click one saved job, look at the preview, press Synchronize**, and everything that changed is on the server. And the
-folders on your computer **mirror the server's folders**, so you can see at a glance where each thing lands.
+Goal: **one saved FreeFileSync job, one double-click, everything that changed is on the server**, and the folders on your computer **have the same
+layout as the server's**, so reading a path on your screen tells you where the file lives on the website.
 
-Everything here is about moving files. The one thing a file transfer cannot do is run a command as root, so after a Riffbox *code* change there is
-still one command (section 6 shows how to make FreeFileSync run it for you).
+FreeFileSync only moves files. The one thing it cannot do is run a command as root, so after a Riffbox *code* change a single command must still run on the
+server. Section 5 makes FreeFileSync run it for you as the last step of the same click.
 
-## 1. Where everything goes on the server
+## 1. What you have today and what replaces it
 
-| # | Goes to (server) | What it is | Direction | Sync mode | How often |
-|---|---|---|---|---|---|
-| A | `/var/www/htdocs` | your public pages, `pub/`, and `private/` pages | up | **Update** | every site edit |
-| B | `/home/me/install.sh` | the site kit's one-file installer | up | Update | rarely (when it changes) |
-| C | `/home/me/riffbox/` | the Riffbox folder (`app/`, `static/`, `deploy/`); its installer copies it into place | up | **Update** | every Riffbox update |
-| D | `/var/riffbox-backup` | the Riffbox backup (made by the **Back up now** button or `backup.py`; a nightly schedule is a planned feature, not installed) | **down** (server to computer) | Update, right to left | after each backup you make |
-| E | `/var/riffbox-restore` | the drop folder for Riffbox data restore | up | Update | only after a wipe |
+| Today (3 scripts) | Server destination | Replaced by |
+|---|---|---|
+| htdocs script | `/var/www/htdocs` | pair **A** |
+| "server" script (the installer) | `/home/me/install.sh` | pair **B** |
+| Riffbox script | `/home/me/riffbox/` | pair **C** |
 
-`me` is your server login. `/var/riffbox-backup` and `/var/riffbox-restore` are created by Riffbox's installer (branch `one-file-installer`).
-Your login can write A, B, C and E and can read D, so FreeFileSync needs no root.
+One job, three folder pairs. A pair is "this folder on my computer <-> that folder on the server". FreeFileSync lets **each pair have its own settings**
+(Update vs Mirror, filters), and syncs all pairs in one run. That is why one job can replace three scripts.
 
-## 2. The folder tree on your computer (mirrors the server's absolute paths)
+Why still three pairs and not one: the server's files live in two unrelated places (`/var/www/...` and `/home/me/...`), and a pair is one folder to one
+folder. Pointing one pair at `/` (everything) would make FreeFileSync read the whole server and gives a typo room to touch system files. Three small,
+named pairs are the safe version.
 
-Make one parent folder, for example `C:\Users\YOU\server-mirror\`, and inside it the same paths the server has:
+## 2. Make the computer's folders match the server's
+
+Make one parent folder, for example `C:\Users\YOU\server-mirror\`, and inside it **the same paths the server has**:
 
 ```
-server-mirror\
+server-mirror\                       <- stands for "/" on the server
   var\
     www\
-      htdocs\                  <- A. copy of personal-site's htdocs\   (index.html, style.css, pub\, private\ ...)
-    riffbox-backup\            <- D. pulled backups land here (nothing of yours is ever put in it)
-    riffbox-restore\           <- E. leave empty; fill only for a restore
+      htdocs\                        <- A. the public site (index.html, style.css, pub\, private\ ...)   = /var/www/htdocs
+    riffbox-backup\                  <- D. pulled backups arrive here (never put your own files in it)    = /var/riffbox-backup
   home\
-    me\
-      install.sh               <- B. from personal-site's server\install.sh
-      riffbox\                 <- C. the riffbox ZIP from GitHub, unpacked and renamed to "riffbox"
+    me\                              <- your server login's home folder                                  = /home/me
+      install.sh                     <- B. the site kit's installer                                       = /home/me/install.sh
+      riffbox\                       <- C. the Riffbox folder, named exactly "riffbox"                    = /home/me/riffbox
         app\  static\  deploy\
 ```
-Reading `server-mirror\var\www\htdocs` is reading `/var/www/htdocs`. If a path looks wrong on screen, it is wrong on the server.
 
-**Keeping it fresh** (by hand, a few minutes): download the `personal-site` ZIP from GitHub, copy its `htdocs\` over `server-mirror\var\www\htdocs\` and
-`server\install.sh` to `server-mirror\home\me\install.sh`. Download the `riffbox` ZIP, delete the old `riffbox\` folder in `home\me\`, and put the new
-one there. Use the ZIP, not `git clone`, so Windows keeps Unix line endings in `install.sh` (the repos also force LF).
+Rule to remember: **delete `server-mirror` from the front of any path on your screen and you have the server path.**
+`server-mirror\home\me\riffbox\deploy\install.sh` is `/home/me/riffbox/deploy/install.sh`.
 
-## 3. Build the jobs
+Where the content comes from: your two GitHub repos. To refresh, download each as a ZIP and copy:
 
-FreeFileSync lets **each folder pair have its own settings**, and lets you switch a pair off temporarily. That is what makes one job possible.
-(Menu names below are from memory of FreeFileSync and may differ slightly in your version; the ideas are what matters.)
+| From the ZIP | Copy to |
+|---|---|
+| `personal-site\htdocs\` (contents) | `server-mirror\var\www\htdocs\` |
+| `personal-site\server\install.sh` | `server-mirror\home\me\install.sh` |
+| `riffbox\` (the whole folder; delete the old `riffbox` folder in `home\me\` first) | `server-mirror\home\me\riffbox\` |
 
-### Job 1: Deploy.ffs_gui (the one you run all the time): pairs A, B, C
-For every pair, the **left** side is the folder in `server-mirror`, the **right** side is the same path on the server through the SFTP connection you
-already use (host `sanjaysubramanian.com`, your key file, your login). Build the first pair as you do now, then for each further pair copy the right-hand
-connection and change only the path at the end.
+(ZIP, not `git clone`, so Windows does not rewrite line endings in `install.sh`; the repos also force LF.)
 
-| Pair | Left (computer) | Right (server) | Synchronization | Filter (Exclude) |
+Optional improvement, no new software: since FreeFileSync can sync any two folders, a **fourth, local-only job** can copy from your unpacked ZIP folders into
+`server-mirror` (Update). Not needed; do it only if the copying annoys you.
+
+## 3. Build the job (once)
+
+Menu names are from memory of FreeFileSync and can differ slightly in your version; the ideas are what matters.
+
+1. Open FreeFileSync. Make the **first pair** the way you do now: left = `server-mirror\var\www\htdocs`, right = the SFTP connection you already use
+   (host `sanjaysubramanian.com`, your key file, user `me`) with path `/var/www/htdocs`.
+2. Add the other two pairs (the "+" next to the folder row, or "Add folder pair"). For each, set the right side the same way and change only the path.
+   For the SFTP login, copy the right-hand field of pair A and edit the path at the end.
+3. Give **each pair** its own settings (the small gear icon on the pair, "Local synchronization settings" / "Local filter"):
+
+| Pair | Left (computer) | Right (server) | Variant | Filter |
 |---|---|---|---|---|
-| A | `server-mirror\var\www\htdocs` | `/var/www/htdocs` | Update | `*sync.ffs_db` and `*.bak` |
-| B+C | `server-mirror\home\me` | `/home/me` | Update, with an **Include** filter | include only: `install.sh` and `riffbox\*`; exclude: `riffbox\tests\*`, `riffbox\docs\*`, `riffbox\archive\*`, `*.git*`, `*__pycache__*` |
+| A | `server-mirror\var\www\htdocs` | `/var/www/htdocs` | **Update** | Exclude: `*sync.ffs_db`, `*.bak` |
+| B | `server-mirror\home\me` | `/home/me` | **Update** | Include: `install.sh` only |
+| C | `server-mirror\home\me\riffbox` | `/home/me/riffbox` | **Update** | Exclude: `tests\*`, `docs\*`, `archive\*`, `*.git*`, `*__pycache__*` |
 
-- **Update** copies new and changed files from left to right and **never deletes** anything on the server. Why: your server's `htdocs` has files that are
-  not on your computer (the `sync.ffs_db` bookkeeping, `Tour Watch.html`); Mirror would delete them. TI's page uses Mirror once your computer holds the
-  complete site; switch pair A to Mirror only on purpose, after you have looked at the preview and seen that nothing you want to keep would go.
-- **Pair B+C uses an Include filter on purpose.** The right side is your whole home folder. Anything not named in the filter is ignored, so a mistake
-  cannot touch Maildir, `.ssh` or anything else. **Never use Mirror on this pair.**
-- Why B and C share a pair: both live under `/home/me`, and one pair with a filter is simpler than two.
+Pair B points at your whole home folder, so its **Include `install.sh`** filter is what keeps it from ever touching `.ssh`, `Maildir` or anything else. Do not
+skip it. Never use **Mirror** on pair B. (If your FreeFileSync wants one filter per pair and the Include filter looks odd on B, an equivalent is to make B's
+left folder a tiny folder that holds only `install.sh` and point it at `/home/me`; the result is the same.)
 
-Save as `Deploy.ffs_gui` (File, Save as...). Double-click it to open it ready to go, press **Compare**, read what will change (nothing outside the three places
-should appear), then **Synchronize**. First run: expect "create" for everything you do not already have on the server.
+Why **Update** everywhere: Update copies new and changed files from your computer to the server and **never deletes** anything on the server. Your server's
+`htdocs` has files that are not on your computer, and Mirror would delete them. Switch pair A to **Mirror** only on purpose, after you have read the preview and
+nothing you want to keep is listed for deletion. Because nothing in this job can delete, it is safe to run without reading every line, but see section 4.
 
-### Job 2: Pull-backup.ffs_gui: pair D (server to computer)
-| Left (computer) | Right (server) | Synchronization |
+4. **Save it** as `Deploy.ffs_batch` (File, "Save as batch job"). A batch job runs the whole thing when you double-click it. If you want to look at the
+   preview before anything is copied, also save a `Deploy.ffs_gui` copy (File, "Save as"); double-click that one to review, press **Compare**, then **Synchronize**.
+   Suggestion: use the `.ffs_gui` for the first few weeks, then the `.ffs_batch` when you trust it.
+
+## 4. Your routine
+
+1. Edit or refresh files in `server-mirror` (section 2).
+2. Double-click `Deploy.ffs_batch` (or `.ffs_gui` and press Synchronize). Done: pages are live at once.
+3. Riffbox code changes need the restart. If you did section 5, that already happened. Otherwise run on the server: `doas sh ~/riffbox/deploy/install.sh --app-files-only`.
+
+Check in the result window that only files you expected were copied, and that there are no errors.
+
+## 5. Optional: make the same click run the installer (and so restart Riffbox)
+
+FreeFileSync can run a command on your computer after a successful synchronization (Synchronization settings, "run a command after synchronization";
+the box has a free-text command line). Use:
+
+```
+ssh me@sanjaysubramanian.com "doas sh /home/me/riffbox/deploy/install.sh --app-files-only"
+```
+
+What each part does: `ssh me@sanjaysubramanian.com` opens a login to your server (Windows 10 and later include `ssh`); the quoted text is the command it runs there;
+`doas` runs it as root (your login has `permit nopass me`, so it asks nothing); `--app-files-only` copies only Riffbox's code into place and restarts it, and touches no system
+file. This is safe to run on every upload: the installer says "nothing changed, no restart needed" when the files are identical and then does not restart Riffbox.
+
+Needs your SSH key to work without a prompt (the one FreeFileSync already uses; with a passphrase, load it into the Windows `ssh-agent` or the command will wait for it).
+Test the `ssh` line once by itself in PowerShell before putting it in FreeFileSync. I have not verified the exact setting name or that your edition offers it; if it does not,
+step 3 of section 4 is one command.
+
+## 6. The other two jobs (different direction, so kept separate on purpose)
+
+### Pull-backup.ffs_gui (server to computer; pair D)
+| Left (computer) | Right (server) | Variant |
 |---|---|---|
-| `server-mirror\var\riffbox-backup` | `/var/riffbox-backup` | **Custom**: new items on the right copy to the left; items only on the left: do nothing; changed items: copy right to left; never delete |
+| `server-mirror\var\riffbox-backup` | `/var/riffbox-backup` | **Custom**: new items on the right copy to the left; items only on the left: do nothing; changed items: right to left; never delete |
 
-Why separate: it runs the other direction and on a different schedule, and a mix-up here is the dangerous one (a pull that goes the wrong way would
-overwrite or delete the backup). A backup on the same VPS does not survive losing the VPS, so this job is what actually protects your recordings.
+A backup on the same VPS does not survive losing the VPS; this job is what protects your recordings. Run it after pressing **Back up now** in Riffbox, and regularly.
+It must stay a separate job: a click that can both push and pull has one more way to go wrong, and the wrong way here overwrites the backup.
 
-### Job 3: Restore.ffs_gui: pair E (only after a wipe)
-| Left | Right | Synchronization |
+### Restore.ffs_gui (computer to server; only after a wipe)
+| Left | Right | Variant |
 |---|---|---|
 | `server-mirror\var\riffbox-restore` (put your pulled backup folder inside it) | `/var/riffbox-restore` | Update |
 
-Then open Riffbox, Backup and export, **Restoring**, press the button (branch `in-app-restore`).
+Then open Riffbox, Backup and export, **Restoring**, and press the button. Full steps: `RESTORE.html`.
 
-### Optional: one master job
-If you prefer one file: put pairs A, B+C, D and E in one job. Use the checkbox on each pair to switch off D and E for everyday runs.
-I recommend the three small jobs instead: a job that can pull and push in one click has more ways to go wrong.
+## 7. Rebuild after a wipe (short; `RESTORE.html` has the full explained version)
+1. Tech Independence. 2. Run `Deploy` (A, B, C). 3. On the server: `doas sh ~/install.sh` (the kit), then `doas sh ~/riffbox/deploy/install.sh` (Riffbox).
+4. Run `Restore`. 5. Press Restore in Riffbox.
 
-## 4. A rebuild after a wipe
-The full, explained version (every command, the prompts, the checks) is `RESTORE.html`. In short:
-1. Tech Independence. 2. Run **Deploy** (A, B, C). 3. On the server, the installers: `doas sh ~/install.sh` (the kit) and
-`doas sh ~/riffbox/deploy/install.sh` (Riffbox). 4. Run **Restore**. 5. Press Restore in Riffbox. The backup comes from your last **Pull-backup**,
-so make a backup (Back up now) and run it regularly.
-
-## 5. Safety rules
-- If FreeFileSync reports it cannot delete or replace files in `/home/me/riffbox`, a file there is owned by root. Fix once on the server: `doas chown -R me:me ~/riffbox` (only that staging folder). Cause and permanent fix: riffbox branch `clean-upload-folder`.
-- Read the **Compare** preview every time. A surprising "delete" or a file you do not recognise: stop.
+## 8. Safety rules
+- Read the preview whenever you change a filter or a path. A surprising "delete" or an unknown file: stop.
 - `Update` everywhere; `Mirror` only for pair A and only on purpose. Never on `/home/me`, `/var`, `/` or `/usr`.
-- Never put anything of yours in `server-mirror\var\riffbox-backup`.
+- If FreeFileSync reports it cannot replace or delete files in `/home/me/riffbox`, a file there is owned by root. One-time fix on the server: `doas chown -R me:me ~/riffbox`.
 - Passwords, tokens and the password hash are not in these folders and must not be added.
 
-## 6. Optional: make the upload also run the Riffbox installer
-After a Riffbox code change the new files must be copied into place and the service restarted: that is `doas sh ~/riffbox/deploy/install.sh`, which needs
-root, so a file transfer cannot do it. FreeFileSync can run a command on your computer after a synchronization (a setting in Synchronization settings,
-"run a command after sync"). Setting it to
-`ssh me@sanjaysubramanian.com doas sh /home/me/riffbox/deploy/install.sh`
-runs the installer on the server over SSH (Windows 10 and later include `ssh`; `doas` has no password for your login, `permit nopass me`). Routine runs need
-no questions; only a first install asks for a passphrase, and that needs `ssh -t`. I have not verified the exact setting or that the free edition of
-FreeFileSync offers it; do it by hand until you have checked.
-
-## 7. Unverified
-FreeFileSync menu names, per-pair settings, and the post-sync command in your edition and version; whether `.ffs_gui` is all you need (batch jobs may be
-a donation-edition feature); SFTP writing to `/home/me` and `/var/www/htdocs` as your login (it works for `htdocs` today); that your login can read
-`/var/riffbox-backup` (the Riffbox installer makes it world-readable).
+## 9. Unverified
+FreeFileSync menu names and per-pair filter behavior in your version; whether your edition offers batch jobs and the after-sync command; SFTP writing to `/home/me` and
+`/var/www/htdocs` as your login (it works for `htdocs` today); that your login can read `/var/riffbox-backup` (the Riffbox installer makes it world-readable); that `ssh` in
+PowerShell connects with your key without a prompt. Nothing here could be run from the build machine.

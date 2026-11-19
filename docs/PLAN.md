@@ -130,7 +130,7 @@ personal-site/                     <- the kit (git repo; the folder you re-uploa
 ## 5. Resulting flows
 
 - **Server rebuild:** (1) Tech Independence. (2) Upload the kit: `htdocs/` to `/var/www/htdocs`, `server/` to your home folder.
-  (3) `doas sh ~/server/install.sh`, once. Riffbox runs, empty. Riffbox data restore is separate and afterwards (section 6).
+  (3) `doas sh ~/install.sh`, once. Riffbox runs, empty. Riffbox data restore is separate and afterwards (section 6).
 - **Edit a page:** upload, no command. **Change Riffbox code:** upload, then `doas rcctl restart riffbox` (stops and restarts the
   service so it loads the new files; the standard step).
 - **Backup:** nightly `backup.py` into `/var/riffbox-backup`; your **Pull** sync copies it to your computer. A backup on the same
@@ -244,7 +244,7 @@ man httpd.conf | col -b | grep -n -i -B1 -A5 'authenticate\|location'
 `man httpd.conf` prints the manual; `col -b` strips formatting; `grep -n -i -B1 -A5` searches ignoring case, with line numbers and
 context. Why: the manual on your own server is the authority for your OpenBSD version, and I could not read it from here.
 
-**`doas sh ~/server/install.sh`** (`doas` = run as root; `sh` = run with the standard shell; the path is the uploaded file). In order
+**`doas sh ~/install.sh`** (`doas` = run as root; `sh` = run with the standard shell; the path is the uploaded file). In order
 (draft; each config change is checked with `relayd -n` / `httpd -n` first):
 1. `pkg_add py3-flask py3-waitress ffmpeg`: Riffbox's dependencies.
 2. `groupadd _riffbox` then `useradd -g _riffbox -L daemon -s /sbin/nologin _riffbox`: an account that cannot log in and owns only
