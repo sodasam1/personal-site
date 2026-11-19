@@ -87,13 +87,13 @@ Check `https://YOURDOMAIN/pub/` loads and lists your files, upload one with rsyn
 The installers refuse to run, and the services refuse to start, unless `/mnt/data` is mounted and holds `.volume-ok`.
 For an app that already runs on the boot disk (Riffbox, music-share), per app (shown for Riffbox):
 ```
-doas sh ~/riffbox/deploy/install.sh --check              # read what it would do
-doas sh ~/riffbox/deploy/install.sh                      # creates /mnt/data/apps/riffbox/{data,backup,restore}; relayd and conf left alone
+doas sh ~/staging/riffbox/deploy/install.sh --check              # read what it would do
+doas sh ~/staging/riffbox/deploy/install.sh                      # creates /mnt/data/apps/riffbox/{data,backup,restore}; relayd and conf left alone
 doas rcctl stop riffbox
 doas rsync -a /var/riffbox/ /mnt/data/apps/riffbox/data/
 doas rsync -a /var/riffbox-backup/ /mnt/data/apps/riffbox/backup/
 doas rsync -a /var/riffbox-restore/ /mnt/data/apps/riffbox/restore/ 2>/dev/null
-doas sh ~/riffbox/deploy/install.sh --repair             # offers to repoint the three conf lines (data only once riffbox.db is on the volume); answer y
+doas sh ~/staging/riffbox/deploy/install.sh --repair             # offers to repoint the three conf lines (data only once riffbox.db is on the volume); answer y
 doas rcctl restart riffbox; curl -s http://127.0.0.1:8100/ideas/health
 ```
 Then play an old recording, press Back up now, and keep the old `/var/riffbox*` folders (renamed `.old`) for a week before deleting. `rsync -a` keeps the numeric owner, so the app's

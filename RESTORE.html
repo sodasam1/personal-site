@@ -58,9 +58,9 @@ Press <kbd>Esc</kbd>, then type <code>:wq</code> and Enter to save.</p>
 
 <h2>B2. The site login (one passphrase for every private app and page)</h2>
 <p>1. Upload the <code>login</code> folder to <code>/home/YOURUSER/login</code> on the server.</p>
-<pre>doas sh ~/login/deploy/install.sh --check</pre>
+<pre>doas sh ~/staging/login/deploy/install.sh --check</pre>
 <p class="why">Look first: it prints what it would create and change, and changes nothing.</p>
-<pre>doas sh ~/login/deploy/install.sh</pre>
+<pre>doas sh ~/staging/login/deploy/install.sh</pre>
 <p class="why">Installs the login service, creates <code>/etc/site-auth</code> (a random master key and your passphrase's salted hash; it asks for the passphrase once, 15
 characters or more), and asks <b>y</b> before adding <code>/login</code> and <code>/private</code> routes to <code>/etc/relayd.conf</code> (a copy is kept as <code>relayd.conf.pre-sitelogin</code>).
 It ends with <code>PASS: Site login answers on 127.0.0.1:8099</code>. Then, on your own computer: <code>sh tools/gate-test-login.sh yourdomain</code> (Windows: <code>tools\gate-test-login.ps1 -Domain yourdomain</code>).</p>
@@ -87,17 +87,17 @@ Do not attach the volume yet.</li>
 
 <h2>C. Riffbox</h2>
 <p>1. Upload the <code>riffbox</code> folder to <code>/home/YOURUSER/riffbox</code> on the server. (Only a staging copy: the installer copies it into place.)</p>
-<pre>ls ~/riffbox/deploy/install.sh</pre>
+<pre>ls ~/staging/riffbox/deploy/install.sh</pre>
 <p class="why">Lists the installer. If it says "No such file", the upload did not arrive or went to the wrong folder.</p>
 <p>2. Look first. This changes nothing and says what it would create or change:</p>
-<pre>doas sh ~/riffbox/deploy/install.sh --check</pre>
+<pre>doas sh ~/staging/riffbox/deploy/install.sh --check</pre>
 <p>3. Do it:</p>
-<pre>doas sh ~/riffbox/deploy/install.sh</pre>
+<pre>doas sh ~/staging/riffbox/deploy/install.sh</pre>
 <p class="why">On a new server it installs Riffbox's packages (Flask, waitress, ffmpeg), makes the service user and folders, writes the start-up script, and asks:
 (a) a long <b>passphrase</b> for the Riffbox login (stored only as a salted hash); (b) your <b>existing upload token</b>: paste it from your password manager so the
 phone Shortcut keeps working, or press Enter for a new one (then put the new one into the Shortcut once); (c) <b>y</b> to add Riffbox's routes to
 <code>/etc/relayd.conf</code> (a copy is kept as <code>relayd.conf.pre-riffbox</code>). It ends with <code>PASS: Riffbox answers on 127.0.0.1:8100</code>.</p>
-<p>Everyday updates later: upload the folder again and run <code>doas sh ~/riffbox/deploy/install.sh --app-files-only</code> (copies only the app and restarts it).
+<p>Everyday updates later: upload the folder again and run <code>doas sh ~/staging/riffbox/deploy/install.sh --app-files-only</code> (copies only the app and restarts it).
 If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 
 <h2>D. Your recordings (Riffbox data restore)</h2>
@@ -120,7 +120,7 @@ If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 <ul>
 <li><b>Riffbox does not answer:</b> <code>doas rcctl check riffbox</code> then <code>tail -30 /var/log/daemon</code> (the last lines of the server's log).</li>
 <li><b>relayd rejects the file:</b> put the copy back with <code>doas cp -p /etc/relayd.conf.pre-riffbox /etc/relayd.conf</code> and <code>doas rcctl reload relayd</code>.</li>
-<li><b>FreeFileSync cannot delete or replace files in <code>~/riffbox</code>:</b> something there is owned by root. Fix once: <code>doas chown -R YOURUSER:YOURUSER ~/riffbox</code> (only that staging folder).</li>
+<li><b>FreeFileSync cannot delete or replace files in <code>~/staging/riffbox</code>:</b> something there is owned by root. Fix once: <code>doas chown -R YOURUSER:YOURUSER ~/staging/riffbox</code> (only that staging folder).</li>
 <li><b>Locked out after wrong passphrases:</b> <code>doas rcctl restart riffbox</code> clears the counter.</li>
 <li><b>Anything else:</b> every installer has <code>--check</code>; run it and read what it says before changing anything.</li>
 </ul>

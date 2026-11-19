@@ -32,7 +32,7 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
   item only. Fail-closed: a route with no `@public`/`@owner`/`@token` declaration is owner-only, and each app's tests fail if any is undeclared.
 - **The two older systems:** httpd Basic auth on `/private/*` is replaced because relayd now sends `/private` to the login service, which
   serves the same files behind the cookie (one hash instead of two, throttled). The httpd block can be removed later with
-  `doas sh ~/server/install.sh --remove` (kept until you say). The riffbox phone-upload bearer token is unchanged.
+  `doas sh ~/staging/server/install.sh --remove` (kept until you say). The riffbox phone-upload bearer token is unchanged.
 - **How strict the wrong-passphrase limit is:** by default 5 wrong tries per client in 15 minutes, then that client waits. Relax it in `/etc/sitelogin.conf` with `SITELOGIN_MAX_FAILS=15` and
   `SITELOGIN_WINDOW_MINUTES=5` (whole numbers; a typo stops the service at start-up), then `doas rcctl restart sitelogin`. The spread-out-attack slow lane never locks anyone out. Riffbox has its own pair (`RIFFBOX_LOGIN_MAX_FAILS`, `RIFFBOX_LOGIN_WINDOW_MINUTES`) for its local passphrase.
 - **Lifetimes:** 30 days from sign-in, 7 days idle; use refreshes the idle clock hourly. `Secure`, `HttpOnly`, `SameSite=Lax`.
@@ -45,7 +45,7 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 
 ## Install order on a server
 1. Tech Independence, then `server/install.sh` (existing, the httpd `/private/` rule).
-2. `~/login`: `doas sh ~/login/deploy/install.sh --check`, then without `--check` (asks your passphrase once). Then `sh tools/gate-test-login.sh DOMAIN` from your computer.
+2. `~/staging/login`: `doas sh ~/staging/login/deploy/install.sh --check`, then without `--check` (asks your passphrase once). Then `sh tools/gate-test-login.sh DOMAIN` from your computer.
 3. Each app's installer, same pattern. Apps with `SITE_AUTH=1` need step 2 first (they hold back and say so otherwise).
 
 ## Verification
