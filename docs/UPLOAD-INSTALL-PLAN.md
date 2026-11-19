@@ -162,7 +162,7 @@ doas sh ~/staging/login/deploy/install.sh
 It installs the packages if missing, makes the user and folders, **asks for your one passphrase** (15 characters or more; it is stored only as a salted hash), and asks **y** before adding `/login` and `/private` routes
 to `/etc/relayd.conf` (it validates with `relayd -n` first and keeps `/etc/relayd.conf.pre-sitelogin`). It ends with `PASS: Site login answers on 127.0.0.1:8099`.
 Then from your computer: `powershell -ExecutionPolicy Bypass -File tools\gate-test-login.ps1 -Domain sanjaysubramanian.com` (personal-site ZIP). All lines should say PASS (it makes one wrong sign-in on purpose).
-**Good state:** `https://sanjaysubramanian.com/login` shows the sign-in form; `/private/index.html` now needs the cookie login instead of the browser's password popup (the old htpasswd rule is still on the server, unused, until you remove it).
+**Good state:** `https://sanjaysubramanian.com/login` shows the sign-in form; `/private/index.html` now needs the cookie login instead of the browser's password popup (the old htpasswd rule is still on the server, unused, until you replace it: `docs/DEPLOY.md` section 5).
 
 ### Step 3: Riffbox (updated code; changes nothing about how you log in yet)
 ```
