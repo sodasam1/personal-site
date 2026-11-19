@@ -89,6 +89,27 @@ APPKIT_TEST_ROOT="$V" $A --yes > "$V/o1" 2>&1 && bad "unmounted volume accepted"
 [ ! -e "$V/etc/rc.d/alpha" ] && ok "REQUIRE_MOUNT: nothing was created before the refusal" || bad "created despite refusal"
 touch "$V/var/alpha/.volume-ok"; APPKIT_TEST_ROOT="$V" $A --yes > "$V/o2" 2>&1 && ok "REQUIRE_MOUNT: proceeds once the sentinel exists" || bad "mount with sentinel failed"
 
+# rc.d start guard: with REQUIRE_MOUNT the service script refuses to start unless the volume is mounted and holds .volume-ok
+grep -q '^rc_pre() {$' "$V/etc/rc.d/alpha" && grep -q 'mount | grep -q " on /var/alpha type " && \[ -f "/var/alpha/.volume-ok" \]' "$V/etc/rc.d/alpha" && awk '/^rc_pre\(\)/{p=NR} /^rc_cmd/{c=NR} /rc.subr/{r=NR} END{exit !(r<p&&p<c)}' "$V/etc/rc.d/alpha" && ok "REQUIRE_MOUNT: the service script has an rc_pre guard between rc.subr and rc_cmd" || { bad "rc_pre guard"; cat "$V/etc/rc.d/alpha"; }
+sh -n "$V/etc/rc.d/alpha" 2>/dev/null; [ "$(grep -c '^rc_cmd' "$V/etc/rc.d/alpha")" = 1 ] && ok "REQUIRE_MOUNT: service script still ends with a single rc_cmd" || bad "rc_cmd count"
+grep -q 'rc_pre' "$R/etc/rc.d/alpha" && bad "an app without a volume got an rc_pre guard" || ok "no REQUIRE_MOUNT: the service script has no guard and no RCPRE leftover"
+grep -q 'RCPRE' "$V/etc/rc.d/alpha" "$R/etc/rc.d/alpha" && bad "RCPRE placeholder leaked" || ok "no placeholder text leaks into any service script"
+
+# --- a rebuilt server: the data folder survived on the volume, the new service user must adopt its owner ---------------
+if chown 4321:4321 "$V/var/alpha" 2>/dev/null; then
+  U="$W/adopt"; mkdir -p "$U/etc" "$U/var/alpha"; cp "$FIX/relayd.pristine.conf" "$U/etc/relayd.conf"; touch "$U/var/alpha/.volume-ok"; chown 4321:4321 "$U/var/alpha"
+  cp "$HERE/apps/alpha/deploy/app.manifest" "$W/up-alpha/deploy/app.manifest"; echo 'REQUIRE_MOUNT=/var/alpha' >> "$W/up-alpha/deploy/app.manifest"
+  APPKIT_TEST_ROOT="$U" $A --yes > "$U/o" 2>&1 || { bad "adopt: run failed"; cat "$U/o"; }
+  grep -q 'would run\] groupadd -g 4321 _alpha' "$U/o" && grep -q 'would run\] useradd -u 4321 -g _alpha' "$U/o" && ok "existing data folder owned by 4321: the new service user is created with that uid and gid" || { bad "uid adoption"; grep -n 'groupadd\|useradd' "$U/o"; }
+  F="$W/fresh-uid"; mkdir -p "$F/etc" "$F/var"; cp "$FIX/relayd.pristine.conf" "$F/etc/relayd.conf"
+  cp "$HERE/apps/alpha/deploy/app.manifest" "$W/up-alpha/deploy/app.manifest"
+  APPKIT_TEST_ROOT="$F" $A --yes > "$F/o" 2>&1; grep -q 'groupadd _alpha' "$F/o" && ! grep -q 'useradd -u' "$F/o" && ok "no data folder yet: the user is created the usual way (no fixed uid)" || bad "fresh user creation changed"
+  # a data folder owned by root (for example the root of a freshly formatted volume) is never adopted
+  chown 0:0 "$U/var/alpha"; APPKIT_TEST_ROOT="$U" $A --yes > "$U/o2" 2>&1; ! grep -q 'useradd -u' "$U/o2" && ok "a root-owned data folder is not adopted" || bad "adopted uid 0"
+else
+  echo "SKIP: uid adoption tests need permission to chown (run as root)"
+fi
+
 # --- --app-files-only -----------------------------------------------------------------------------------
 C="$W/codeonly"; mkdir -p "$C/etc"; cp "$FIX/relayd.pristine.conf" "$C/etc/relayd.conf"
 cp "$HERE/apps/alpha/deploy/app.manifest" "$W/up-alpha/deploy/app.manifest"
