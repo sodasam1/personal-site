@@ -16,7 +16,7 @@ h1,h2,h3{line-height:1.2} .why{font-size:.95rem;opacity:.85}
 <ul>
 <li>The <b>site kit</b> folder (the <code>personal-site</code> repo): <code>htdocs\</code> and <code>server\install.sh</code>.</li>
 <li>The <b>riffbox</b> folder (GitHub: Code, Download ZIP; unpack and rename to <code>riffbox</code>; it must hold <code>app</code>, <code>static</code> and <code>deploy</code>).</li>
-<li>Your <b>latest pulled backup</b>: the copy of the server's <code>/mnt/data/riffbox/backup</code> (it holds <code>db</code> and <code>audio</code>). It is only as new as your last pull. (If the data volume survived, you do not need it: see B3.)</li>
+<li>Your <b>latest pulled backup</b>: the copy of the server's <code>/mnt/data/apps/riffbox/backup</code> (it holds <code>db</code> and <code>audio</code>). It is only as new as your last pull. (If the data volume survived, you do not need it: see B3.)</li>
 <li>In your <b>password manager</b>: the site passphrase, the Riffbox passphrase, and the phone <b>upload token</b> (so the iPhone Shortcut keeps working).</li>
 <li>Your <b>SSH key</b> (<code>id_ed25519</code>), as the Tech Independence page explains.</li>
 </ul>
@@ -68,8 +68,8 @@ It ends with <code>PASS: Site login answers on 127.0.0.1:8099</code>. Then, on y
 "the site login is not installed yet", do this section first and re-run it.</p>
 
 <h2>B3. The data volume (all apps' data and /pub/)</h2>
-<p>Every app keeps its <b>data</b> (recordings, databases, backups, restore folders) on the separate plain 100 GB Vultr volume, mounted at <code>/mnt/data</code> (folders
-<code>riffbox/</code>, <code>music-share/</code>, <code>version-control/</code>, each with <code>data</code>, <code>backup</code>, <code>restore</code>). <code>/pub/</code> is the volume's first partition,
+<p>Every app keeps its <b>data</b> (recordings, databases, backups, restore folders) on the separate plain 100 GB Vultr volume, mounted at <code>/mnt/data</code>. The top level holds only <code>apps/</code> and <code>_server/</code>; every app is a folder under <code>apps/</code>
+(<code>riffbox/</code>, <code>music-share/</code>, <code>version-control/</code>, each with <code>data</code>, <code>backup</code>, <code>restore</code>). <code>/pub/</code> is the volume's first partition,
 mounted at <code>/var/www/htdocs/pub</code>. The <b>programs</b> stay on the boot disk and are rebuilt by each app's installer. The full step-by-step, with the one destructive step marked,
 how to expand it later and the reasons for the layout, is <code>docs/STORAGE.md</code> in the site kit.</p>
 <p><b>After a wiped server the volume still holds your data: do NOT format it again</b> (no <code>disklabel -E</code>, no <code>newfs</code>). In this order:</p>
@@ -101,7 +101,7 @@ phone Shortcut keeps working, or press Enter for a new one (then put the new one
 If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 
 <h2>D. Your recordings (Riffbox data restore)</h2>
-<p>1. Upload your pulled backup folder (the one holding <code>db</code> and <code>audio</code>) into <code>/mnt/data/riffbox/restore</code> on the server.</p>
+<p>1. Upload your pulled backup folder (the one holding <code>db</code> and <code>audio</code>) into <code>/mnt/data/apps/riffbox/restore</code> on the server.</p>
 <p>2. Open Riffbox in the browser, then <b>Backup and export</b>, then <b>Restoring</b>. It should say it found a backup and how many recordings. Press
 <b>Restore from this folder</b>. It only works into an <b>empty</b> library, so it cannot overwrite anything, and it never changes the folder you uploaded.</p>
 <p>3. If anything is missing or damaged it is listed, not hidden. Waveforms and play copies are rebuilt in the background afterwards.</p>
@@ -112,8 +112,8 @@ If a setting is wrong, <code>--repair</code> shows each fix and asks first.</p>
 <li><code>https://yourdomain/</code> loads, and <code>https://yourdomain/private/index.html</code> asks for the password (<code>tools\gate-test.ps1</code> on Windows, <code>tools/gate-test.sh</code> elsewhere).</li>
 <li>Log in to Riffbox at <code>/ideas/</code> and play a recording.</li>
 <li>Upload a memo from the iPhone Shortcut (<code>deploy/SHORTCUT.md</code>, section 6, in the riffbox folder).</li>
-<li>Press <b>Back up now</b> on the Backup and export page, then confirm a new file appears in <code>/mnt/data/riffbox/backup/db</code>.</li>
-<li>Pull <code>/mnt/data/riffbox/backup</code> to your computer again, so the new server has an off-server copy.</li>
+<li>Press <b>Back up now</b> on the Backup and export page, then confirm a new file appears in <code>/mnt/data/apps/riffbox/backup/db</code>.</li>
+<li>Pull <code>/mnt/data/apps/riffbox/backup</code> to your computer again, so the new server has an off-server copy.</li>
 </ol>
 
 <h2>F. If something goes wrong</h2>

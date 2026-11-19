@@ -34,8 +34,8 @@ so after a wipe you reinstall and point at the preserved data. The manifest is s
 DATA_ROOT=/mnt/data
 REQUIRE_MOUNT=$DATA_ROOT
 SVC_HOME=/var/empty
-DIRS="$DATA_ROOT/NAME/data,@svc,@svc,750 $DATA_ROOT/NAME/backup,@svc,@svc,755 $DATA_ROOT/NAME/restore,@login,@login,755"
-CONF_LINES="NAME_DATA_DIR=$DATA_ROOT/NAME/data
+DIRS="$DATA_ROOT/apps/NAME/data,@svc,@svc,750 $DATA_ROOT/apps/NAME/backup,@svc,@svc,755 $DATA_ROOT/apps/NAME/restore,@login,@login,755"
+CONF_LINES="NAME_DATA_DIR=$DATA_ROOT/apps/NAME/data
 ..."
 ```
 Keep `data` and `backup` on the **same filesystem** if an app hard-links backups to save space (Version Control does). `DATA_ROOT` may differ per app (a second volume at `/mnt/data2`).

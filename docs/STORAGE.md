@@ -6,12 +6,13 @@ Decision (yours): unencrypted, 100 GB, on Vultr. Program files stay on the boot 
 server you reinstall the programs and point them at the preserved data.
 
 ## What goes where
+The top level of `/mnt/data` holds only three things: `apps/` (one folder per app, so a new app never adds clutter at the top), `_server/` (notes) and the `.volume-ok` marker.
 | What | Where | Survives a wipe? | Rebuilt by |
 |---|---|---|---|
 | Program files, service script, relayd routes, packages, `/etc/<app>.conf`, service user `_<app>` | boot disk | no | the app's installer |
-| Live data (database, audio, scratch) | `/mnt/data/<app>/data` | **yes** | nothing: the installer points at it |
-| Backups | `/mnt/data/<app>/backup` | yes (still pull them to your computer) | nothing |
-| Restore drop folder | `/mnt/data/<app>/restore` | yes | nothing |
+| Live data (database, audio, scratch) | `/mnt/data/apps/<app>/data` | **yes** | nothing: the installer points at it |
+| Backups | `/mnt/data/apps/<app>/backup` | yes (still pull them to your computer) | nothing |
+| Restore drop folder | `/mnt/data/apps/<app>/restore` | yes | nothing |
 | Public files | their own partition, mounted at `/var/www/htdocs/pub` | yes | an fstab line |
 | Notes for rebuild day (fstab lines, DUID, layout; **no secrets**) | `/mnt/data/_server/README` | yes | you |
 Secrets (`/etc/<app>.conf`, the site login keys) stay on the boot disk: the volume is unencrypted. After a wipe the installers ask again
@@ -87,11 +88,11 @@ The installers refuse to run, and the services refuse to start, unless `/mnt/dat
 For an app that already runs on the boot disk (Riffbox, music-share), per app (shown for Riffbox):
 ```
 doas sh ~/riffbox/deploy/install.sh --check              # read what it would do
-doas sh ~/riffbox/deploy/install.sh                      # creates /mnt/data/riffbox/{data,backup,restore}; relayd and conf left alone
+doas sh ~/riffbox/deploy/install.sh                      # creates /mnt/data/apps/riffbox/{data,backup,restore}; relayd and conf left alone
 doas rcctl stop riffbox
-doas rsync -a /var/riffbox/ /mnt/data/riffbox/data/
-doas rsync -a /var/riffbox-backup/ /mnt/data/riffbox/backup/
-doas rsync -a /var/riffbox-restore/ /mnt/data/riffbox/restore/ 2>/dev/null
+doas rsync -a /var/riffbox/ /mnt/data/apps/riffbox/data/
+doas rsync -a /var/riffbox-backup/ /mnt/data/apps/riffbox/backup/
+doas rsync -a /var/riffbox-restore/ /mnt/data/apps/riffbox/restore/ 2>/dev/null
 doas sh ~/riffbox/deploy/install.sh --repair             # offers to repoint the three conf lines (data only once riffbox.db is on the volume); answer y
 doas rcctl restart riffbox; curl -s http://127.0.0.1:8100/ideas/health
 ```
@@ -111,6 +112,6 @@ Two ways; the layout above supports both. **Rehearse one while the volume is sti
 ## 6. After a wiped server (the volume still holds your data)
 **Do not run `disklabel -E` or `newfs` again.** See `RESTORE.html`, section B3, for the full order. In short: answer **n** to `ti.sh`'s storage question (or `mkdir -p /root/my && touch /root/my/storageno`
 before running it); finish `ti.sh`; attach the volume, reboot, `doas disklabel sd1 | grep duid` (it equals the DUID in `/mnt/data/_server/README`), re-add the two fstab lines, `doas mkdir -p /mnt/data && doas mount -a`,
-check `.volume-ok` and `/pub/`; then run each app's installer (`--check`, then for real): it creates the service user with the uid of the existing data folders, and starts pointing at `/mnt/data/<app>/...`.
+check `.volume-ok` and `/pub/`; then run each app's installer (`--check`, then for real): it creates the service user with the uid of the existing data folders, and starts pointing at `/mnt/data/apps/<app>/...`.
 What still lives only on the boot disk and is lost: mail (`~/Maildir`), Radicale contacts/calendar (`radbak` copies into your home, the same disk), SSH host keys, secrets. Pull backups to your computer as before
-(`/mnt/data/*/backup`, and `/var/www/htdocs/pub`): a backup on the same volume does not protect against losing the volume.
+(`/mnt/data/apps/*/backup`, and `/var/www/htdocs/pub`): a backup on the same volume does not protect against losing the volume.

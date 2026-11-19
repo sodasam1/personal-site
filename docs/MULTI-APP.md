@@ -54,9 +54,9 @@ no drop-in directory inside a block). It is vendored into each app so each uploa
 **Program files and settings on the boot disk; all data on one plain data volume**, so a wiped server is rebuilt by reinstalling the programs and pointing them at the kept data.
 | App | Program files | Data, backups, restore folder |
 |---|---|---|
-| riffbox | `/usr/local/riffbox` | `/mnt/data/riffbox/{data,backup,restore}` |
-| music-share | `/usr/local/music-share` | `/mnt/data/music-share/{data,backup,restore}` |
-| Version Control | `/usr/local/version-control` | `/mnt/data/version-control/{data,backup,restore}` (backups hard-link audio: data and backup stay on the same filesystem) |
+| riffbox | `/usr/local/riffbox` | `/mnt/data/apps/riffbox/{data,backup,restore}` |
+| music-share | `/usr/local/music-share` | `/mnt/data/apps/music-share/{data,backup,restore}` |
+| Version Control | `/usr/local/version-control` | `/mnt/data/apps/version-control/{data,backup,restore}` (backups hard-link audio: data and backup stay on the same filesystem) |
 | `/pub/` | n/a | the volume's first partition, mounted at `/var/www/htdocs/pub` |
 | Site login | `/usr/local/login`; state in `/etc/site-auth` (boot disk, secrets) | none |
 Each app's manifest sets `DATA_ROOT=/mnt/data` and `REQUIRE_MOUNT=$DATA_ROOT`: the installer refuses to run, and the service script (`rc_pre`) refuses to start, unless the volume is mounted and holds
